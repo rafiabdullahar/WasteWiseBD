@@ -13,6 +13,7 @@ import serviceAreaRoutes from "./src/routes/serviceArea.routes.js";
 import wasteCategoryRoutes from "./src/routes/wasteCategory.routes.js";
 import adminRoutes from "./src/routes/admin.routes.js";
 import { notFound, errorHandler } from "./src/middleware/error.middleware.js";
+import guidelineRoutes from "./src/routes/guideline.routes.js";
 
 const app = express();
 
@@ -39,8 +40,8 @@ app.use("/api/recycling", recyclingRoutes);
 app.use("/api/service-areas", serviceAreaRoutes);
 app.use("/api/waste-categories", wasteCategoryRoutes);
 app.use("/api/admin", adminRoutes);
-
-app.get("/api/health", (req, res) => {
+app.use("/api/guidelines", guidelineRoutes);
+t("/api/health", (req, res) => {
   res.status(200).json({ success: true, message: "WasteWiseBD API is running" });
 });
 
