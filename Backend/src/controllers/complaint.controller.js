@@ -13,6 +13,7 @@ export const createComplaint = asyncHandler(async (req, res) => {
     resident: req.user._id,
     pickupRequest: req.body.pickupRequest || null,
     description: req.body.description,
+    pickupContext: req.body.pickupContext || "",
   });
 
   return sendSuccess(res, 201, "Complaint submitted", { complaint });

@@ -17,6 +17,11 @@ const complaintSchema = new mongoose.Schema(
       required: [true, "Description is required"],
       trim: true,
     },
+    pickupContext: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     status: {
       type: String,
       enum: ["Open", "Investigating", "Resolved", "Closed"],

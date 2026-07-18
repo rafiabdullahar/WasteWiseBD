@@ -12,6 +12,8 @@ import RegisterPage from './pages/auth/RegisterPage'
 import ResidentDashboard from './pages/resident/ResidentDashboard'
 import ResidentProfilePage from './pages/resident/ResidentProfilePage'
 import RecyclingRequestPage from './pages/resident/RecyclingRequestPage'
+import ResidentComplaintPage from './pages/resident/ResidentComplaintPage'
+import ResidentGuidelinesPage from './pages/resident/ResidentGuidelinesPage'
 
 // Collector
 import CollectorDashboard from './pages/collector/CollectorDashboard'
@@ -26,6 +28,8 @@ import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminUsersPage from './pages/admin/AdminUsersPage'
 import AdminPartnersPage from './pages/admin/AdminPartnersPage'
 import AdminServiceAreasPage from './pages/admin/AdminServiceAreasPage'
+import AdminComplaintsPage from './pages/admin/AdminComplaintsPage'
+import AdminGuidelinesPage from './pages/admin/AdminGuidelinesPage'
 
 function App() {
   return (
@@ -62,6 +66,8 @@ function App() {
             <Route path="/resident/dashboard" element={<ResidentDashboard />} />
             <Route path="/resident/profile" element={<ResidentProfilePage />} />
             <Route path="/resident/recycling" element={<RecyclingRequestPage />} />
+            <Route path="/resident/complaints" element={<ResidentComplaintPage />} />
+            <Route path="/resident/guidelines" element={<ResidentGuidelinesPage />} />
           </Route>
 
           {/* Collector Routes */}
@@ -82,6 +88,8 @@ function App() {
             <Route path="/admin/users" element={<AdminUsersPage />} />
             <Route path="/admin/partners" element={<AdminPartnersPage />} />
             <Route path="/admin/service-areas" element={<AdminServiceAreasPage />} />
+            <Route path="/admin/complaints" element={<AdminComplaintsPage />} />
+            <Route path="/admin/guidelines" element={<AdminGuidelinesPage />} />
           </Route>
 
         </Route>
