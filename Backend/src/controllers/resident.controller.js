@@ -54,10 +54,14 @@ export const updateProfile = asyncHandler(async (req, res) => {
 const profile = await ResidentProfile.findOneAndUpdate(
   { user: req.user._id },
   { $set: updates },
-  { new: true, runValidators: true }
+  { new: true, runValidators: true, upsert: true, setDefaultsOnInsert: true }
 )
   .populate("user", "name email phone")
   .populate("addresses.serviceArea", "name city");
+
+if (!profile) {
+  return sendError(res, 500, "Failed to update profile");
+}
 
 return sendSuccess(res, 200, "Profile updated successfully", { profile });
 });
