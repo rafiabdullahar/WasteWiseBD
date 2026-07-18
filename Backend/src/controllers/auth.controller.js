@@ -1,4 +1,7 @@
 import User from "../models/User.model.js";
+import ResidentProfile from "../models/ResidentProfile.model.js";
+import CollectorProfile from "../models/CollectorProfile.model.js";
+import RecyclingPartner from "../models/RecyclingPartner.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import { generateToken, sendTokenCookie } from "../utils/token.js";
@@ -7,8 +10,34 @@ import {
   validateLoginInput,
 } from "../validations/auth.validation.js";
 
+// Helper: create the appropriate role-specific profile document after a new
+// user is saved so that the profile collection always has a matching record.
+const createRoleProfile = async (user) => {
+  switch (user.role) {
+    case "resident":
+      await ResidentProfile.create({ user: user._id });
+      break;
+    case "collector":
+      await CollectorProfile.create({ user: user._id });
+      break;
+    case "partner":
+      await RecyclingPartner.create({
+        user: user._id,
+        organizationName: user.name,
+        contactEmail: user.email,
+        contactPhone: user.phone || "",
+      });
+      break;
+    default:
+      break;
+  }
+};
+
 // @route  POST /api/auth/register
 // @access Public
+// Residents, Collectors, and Recycling Partners may all self-register.
+// Admin accounts must be provisioned directly in the database — they can
+// never be created through this public endpoint.
 export const register = asyncHandler(async (req, res) => {
   const { isValid, errors } = validateRegisterInput(req.body);
   if (!isValid) {
@@ -17,22 +46,27 @@ export const register = asyncHandler(async (req, res) => {
 
   const { name, email, password, phone, role, householdType } = req.body;
 
+  // Guard: admin accounts cannot be self-registered.
+  const allowedSelfRegisterRoles = ["resident", "collector", "partner"];
+  const assignedRole =
+    role && allowedSelfRegisterRoles.includes(role) ? role : "resident";
+
   const existingUser = await User.findOne({ email: email.toLowerCase() });
   if (existingUser) {
     return sendError(res, 409, "An account with this email already exists");
   }
 
-  // Public self-registration only ever creates Residents. Collector, Partner,
-  // and Admin accounts should be provisioned separately (e.g. by an Admin),
-  // so any "role" sent in the request body is intentionally ignored here.
   const user = await User.create({
     name,
     email,
     password,
     phone,
-    householdType,
-    role: "resident",
+    householdType: assignedRole === "resident" ? householdType : undefined,
+    role: assignedRole,
   });
+
+  // Automatically create the role-specific profile document.
+  await createRoleProfile(user);
 
   const token = generateToken(user._id, user.role);
   sendTokenCookie(res, token);
