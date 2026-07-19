@@ -12,7 +12,9 @@ import {
   Map, 
   Users, 
   Settings,
-  LayoutDashboard
+  LayoutDashboard,
+  MessageSquareWarning,
+  BookOpen
 } from 'lucide-react'
 
 const MainLayout = () => {
@@ -36,6 +38,8 @@ const MainLayout = () => {
           { name: 'Dashboard', path: '/resident/dashboard', icon: LayoutDashboard },
           { name: 'Profile', path: '/resident/profile', icon: User },
           { name: 'Recycling', path: '/resident/recycling', icon: Recycle },
+          { name: 'Complaints', path: '/resident/complaints', icon: MessageSquareWarning },
+          { name: 'Guidelines', path: '/resident/guidelines', icon: BookOpen },
         ]
       case 'collector':
         return [
@@ -53,6 +57,8 @@ const MainLayout = () => {
           { name: 'Users', path: '/admin/users', icon: Users },
           { name: 'Partners', path: '/admin/partners', icon: Recycle },
           { name: 'Service Areas', path: '/admin/service-areas', icon: Map },
+          { name: 'Complaints', path: '/admin/complaints', icon: MessageSquareWarning },
+          { name: 'Guidelines', path: '/admin/guidelines', icon: BookOpen },
         ]
       default:
         return []
