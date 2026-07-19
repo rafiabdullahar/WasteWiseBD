@@ -12,11 +12,72 @@ export const createComplaint = asyncHandler(async (req, res) => {
   const complaint = await Complaint.create({
     resident: req.user._id,
     pickupRequest: req.body.pickupRequest || null,
-    description: req.body.description,
-    pickupContext: req.body.pickupContext || "",
+    category: req.body.category,
+    description: req.body.description || "",
+    area: req.body.area || "",
+    missedDate: req.body.missedDate || null,
+    evidenceUrl: req.file ? `/uploads/complaints/${req.file.filename}` : "",
   });
 
   return sendSuccess(res, 201, "Complaint submitted", { complaint });
+});
+// @route  PUT /api/complaints/:id
+// @access Private (Resident, own complaint, only while status is "Open")
+export const updateComplaint = asyncHandler(async (req, res) => {
+  const complaint = await Complaint.findById(req.params.id);
+
+  if (!complaint) {
+    return sendError(res, 404, "Complaint not found");
+  }
+
+  if (complaint.resident.toString() !== req.user._id.toString()) {
+    return sendError(res, 403, "You can only edit your own complaints");
+  }
+
+  if (complaint.status !== "Open") {
+    return sendError(
+      res,
+      409,
+      `This complaint cannot be edited because it is already ${complaint.status.toLowerCase()}`
+    );
+  }
+
+  const { isValid, errors } = validateComplaintInput(req.body);
+  if (!isValid) return sendError(res, 400, "Validation failed", errors);
+
+  complaint.category = req.body.category || complaint.category;
+  complaint.description = req.body.description || "";
+  complaint.area = req.body.area || "";
+  complaint.missedDate = req.body.missedDate || null;
+  await complaint.save();
+
+  return sendSuccess(res, 200, "Complaint updated", { complaint });
+});
+
+// @route  DELETE /api/complaints/:id
+// @access Private (Resident, own complaint, only while status is "Open")
+export const deleteComplaint = asyncHandler(async (req, res) => {
+  const complaint = await Complaint.findById(req.params.id);
+
+  if (!complaint) {
+    return sendError(res, 404, "Complaint not found");
+  }
+
+  if (complaint.resident.toString() !== req.user._id.toString()) {
+    return sendError(res, 403, "You can only delete your own complaints");
+  }
+
+  if (complaint.status !== "Open") {
+    return sendError(
+      res,
+      409,
+      `This complaint cannot be deleted because it is already ${complaint.status.toLowerCase()}`
+    );
+  }
+
+  await complaint.deleteOne();
+
+  return sendSuccess(res, 200, "Complaint deleted", {});
 });
 
 // @route  GET /api/complaints/my
