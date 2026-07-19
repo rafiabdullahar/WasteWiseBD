@@ -1,18 +1,21 @@
 import { useState } from 'react'
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { 
-  Leaf, 
-  LogOut, 
-  Menu, 
-  X, 
-  Home, 
-  User, 
-  Recycle, 
-  Map, 
-  Users, 
+import {
+  Leaf,
+  LogOut,
+  Menu,
+  X,
+  Home,
+  User,
+  Recycle,
+  Map,
+  Users,
   Settings,
-  LayoutDashboard
+  LayoutDashboard,
+  MessageSquareWarning,
+  BookOpen,
+  Truck,
 } from 'lucide-react'
 
 const MainLayout = () => {
@@ -33,9 +36,36 @@ const MainLayout = () => {
     switch (user.role) {
       case 'resident':
         return [
-          { name: 'Dashboard', path: '/resident/dashboard', icon: LayoutDashboard },
-          { name: 'Profile', path: '/resident/profile', icon: User },
-          { name: 'Recycling', path: '/resident/recycling', icon: Recycle },
+          {
+            name: 'Dashboard',
+            path: '/resident/dashboard',
+            icon: LayoutDashboard,
+          },
+          {
+            name: 'Profile',
+            path: '/resident/profile',
+            icon: User,
+          },
+          {
+            name: 'Waste Pickup',
+            path: '/resident/pickups',
+            icon: Truck,
+          },
+          {
+            name: 'Recycling',
+            path: '/resident/recycling',
+            icon: Recycle,
+          },
+          {
+            name: 'Complaints',
+            path: '/resident/complaints',
+            icon: MessageSquareWarning,
+          },
+          {
+            name: 'Guidelines',
+            path: '/resident/guidelines',
+            icon: BookOpen,
+          },
         ]
       case 'collector':
         return [

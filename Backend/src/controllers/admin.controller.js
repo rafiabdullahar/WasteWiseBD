@@ -6,31 +6,113 @@ import RecyclingRequest from "../models/RecyclingRequest.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 
+const round = (value, digits = 1) =>
+  Number((Number(value || 0)).toFixed(digits));
+
+const DEFAULT_RECYCLING_STATUSES = {
+  pending: 0,
+  assigned: 0,
+  accepted: 0,
+  rejected: 0,
+  in_progress: 0,
+  completed: 0,
+  cancelled: 0,
+};
+
 // @route  GET /api/admin/dashboard
 // @access admin
-// Uses MongoDB aggregation pipelines for real-time analytics instead of
-// multiple round-trips. All counts are computed in a single stage.
 export const getDashboardStats = asyncHandler(async (req, res) => {
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+  sixMonthsAgo.setDate(1);
+  sixMonthsAgo.setHours(0, 0, 0, 0);
+
   const [
-    totalUsers,
-    usersByRole,
-    totalResidents,
-    totalCollectors,
-    totalPartners,
-    verifiedPartners,
-    pendingPartners,
-    recyclingStats,
+    userSummaryRows,
+    usersByRoleRows,
+    partnerSummaryRows,
+    collectorSummaryRows,
+    collectorPerformanceRows,
+    topCollectors,
+    recyclingStatusRows,
+    recyclingQuantityRows,
+    materialBreakdown,
+    monthlyTrend,
     recentUsers,
   ] = await Promise.all([
-    User.countDocuments(),
+    User.aggregate([
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          active: { $sum: { $cond: ["$isActive", 1, 0] } },
+          inactive: { $sum: { $cond: ["$isActive", 0, 1] } },
+        },
+      },
+    ]),
+
     User.aggregate([
       { $group: { _id: "$role", count: { $sum: 1 } } },
+      { $sort: { _id: 1 } },
     ]),
-    User.countDocuments({ role: "resident" }),
-    User.countDocuments({ role: "collector" }),
-    User.countDocuments({ role: "partner" }),
-    RecyclingPartner.countDocuments({ isVerified: true }),
-    RecyclingPartner.countDocuments({ isVerified: false }),
+
+    RecyclingPartner.aggregate([
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          verified: { $sum: { $cond: ["$isVerified", 1, 0] } },
+          pendingVerification: {
+            $sum: { $cond: ["$isVerified", 0, 1] },
+          },
+          totalRecycledKg: { $sum: "$totalRecycled" },
+          totalRequestsHandled: { $sum: "$totalRequestsHandled" },
+        },
+      },
+    ]),
+
+    CollectorProfile.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalProfiles: { $sum: 1 },
+          available: { $sum: { $cond: ["$isAvailable", 1, 0] } },
+          unavailable: { $sum: { $cond: ["$isAvailable", 0, 1] } },
+        },
+      },
+    ]),
+
+    CollectorProfile.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalCompleted: { $sum: "$totalCompleted" },
+          totalFailed: { $sum: "$totalFailed" },
+          ratedCollectors: {
+            $sum: { $cond: [{ $gt: ["$averageRating", 0] }, 1, 0] },
+          },
+          ratingTotal: {
+            $sum: {
+              $cond: [
+                { $gt: ["$averageRating", 0] },
+                "$averageRating",
+                0,
+              ],
+            },
+          },
+        },
+      },
+    ]),
+
+    CollectorProfile.find()
+      .populate("user", "name email isActive")
+      .sort({ totalCompleted: -1, averageRating: -1 })
+      .limit(5)
+      .select(
+        "user employeeId vehicleType isAvailable totalCompleted totalFailed averageRating"
+      )
+      .lean(),
+
     RecyclingRequest.aggregate([
       {
         $group: {
@@ -39,34 +121,246 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
         },
       },
     ]),
+
+    RecyclingRequest.aggregate([
+      { $unwind: "$materials" },
+      {
+        $group: {
+          _id: null,
+          totalRequestedQuantityKg: {
+            $sum: "$materials.estimatedQuantity",
+          },
+          completedQuantityKg: {
+            $sum: {
+              $cond: [
+                { $eq: ["$status", "completed"] },
+                "$materials.estimatedQuantity",
+                0,
+              ],
+            },
+          },
+        },
+      },
+    ]),
+
+    RecyclingRequest.aggregate([
+      { $unwind: "$materials" },
+      {
+        $group: {
+          _id: "$materials.category",
+          requestItems: { $sum: 1 },
+          quantityKg: { $sum: "$materials.estimatedQuantity" },
+          completedQuantityKg: {
+            $sum: {
+              $cond: [
+                { $eq: ["$status", "completed"] },
+                "$materials.estimatedQuantity",
+                0,
+              ],
+            },
+          },
+        },
+      },
+      { $sort: { quantityKg: -1 } },
+    ]),
+
+    RecyclingRequest.aggregate([
+      { $match: { createdAt: { $gte: sixMonthsAgo } } },
+      {
+        $project: {
+          status: 1,
+          year: { $year: "$createdAt" },
+          month: { $month: "$createdAt" },
+          quantityKg: { $sum: "$materials.estimatedQuantity" },
+        },
+      },
+      {
+        $group: {
+          _id: { year: "$year", month: "$month" },
+          totalRequests: { $sum: 1 },
+          completedRequests: {
+            $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] },
+          },
+          quantityKg: { $sum: "$quantityKg" },
+        },
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } },
+    ]),
+
     User.find()
       .sort({ createdAt: -1 })
       .limit(5)
-      .select("name email role createdAt isActive"),
+      .select("name email role createdAt isActive")
+      .lean(),
   ]);
 
-  // Shape recycling stats into a map for easy frontend consumption.
-  const recyclingByStatus = recyclingStats.reduce((acc, cur) => {
-    acc[cur._id] = cur.count;
-    return acc;
-  }, {});
+  const userSummary = userSummaryRows[0] || {
+    total: 0,
+    active: 0,
+    inactive: 0,
+  };
+
+  const usersByRole = usersByRoleRows.reduce(
+    (acc, current) => {
+      acc[current._id] = current.count;
+      return acc;
+    },
+    { resident: 0, collector: 0, partner: 0, admin: 0 }
+  );
+
+  const partnerSummary = partnerSummaryRows[0] || {
+    total: 0,
+    verified: 0,
+    pendingVerification: 0,
+    totalRecycledKg: 0,
+    totalRequestsHandled: 0,
+  };
+
+  const collectorSummary = collectorSummaryRows[0] || {
+    totalProfiles: 0,
+    available: 0,
+    unavailable: 0,
+  };
+
+  const collectorPerformance = collectorPerformanceRows[0] || {
+    totalCompleted: 0,
+    totalFailed: 0,
+    ratedCollectors: 0,
+    ratingTotal: 0,
+  };
+
+  const recyclingByStatus = recyclingStatusRows.reduce(
+    (acc, current) => {
+      acc[current._id] = current.count;
+      return acc;
+    },
+    { ...DEFAULT_RECYCLING_STATUSES }
+  );
+
+  const recyclingTotal = Object.values(recyclingByStatus).reduce(
+    (sum, count) => sum + count,
+    0
+  );
+
+  const activeRecyclingRequests =
+    recyclingByStatus.assigned +
+    recyclingByStatus.accepted +
+    recyclingByStatus.in_progress;
+
+  const actionableRecyclingRequests =
+    recyclingTotal - recyclingByStatus.cancelled;
+
+  const recyclingCompletionRate = actionableRecyclingRequests
+    ? round(
+        (recyclingByStatus.completed / actionableRecyclingRequests) * 100
+      )
+    : 0;
+
+  const totalCollectorTasks =
+    collectorPerformance.totalCompleted + collectorPerformance.totalFailed;
+
+  const collectorSuccessRate = totalCollectorTasks
+    ? round((collectorPerformance.totalCompleted / totalCollectorTasks) * 100)
+    : 0;
+
+  const averageCollectorRating = collectorPerformance.ratedCollectors
+    ? round(
+        collectorPerformance.ratingTotal /
+          collectorPerformance.ratedCollectors,
+        2
+      )
+    : 0;
+
+  const efficiencyInputs = [];
+  if (actionableRecyclingRequests > 0) {
+    efficiencyInputs.push(recyclingCompletionRate);
+  }
+  if (totalCollectorTasks > 0) {
+    efficiencyInputs.push(collectorSuccessRate);
+  }
+
+  const operationalEfficiency = efficiencyInputs.length
+    ? round(
+        efficiencyInputs.reduce((sum, value) => sum + value, 0) /
+          efficiencyInputs.length
+      )
+    : 0;
+
+  const recyclingQuantities = recyclingQuantityRows[0] || {
+    totalRequestedQuantityKg: 0,
+    completedQuantityKg: 0,
+  };
 
   return sendSuccess(res, 200, "Dashboard stats fetched", {
     users: {
-      total: totalUsers,
-      residents: totalResidents,
-      collectors: totalCollectors,
-      partners: totalPartners,
+      total: userSummary.total,
+      active: userSummary.active,
+      inactive: userSummary.inactive,
+      residents: usersByRole.resident,
+      collectors: usersByRole.collector,
+      partners: usersByRole.partner,
+      admins: usersByRole.admin,
       byRole: usersByRole,
     },
+
     partners: {
-      verified: verifiedPartners,
-      pendingVerification: pendingPartners,
+      total: partnerSummary.total,
+      verified: partnerSummary.verified,
+      pendingVerification: partnerSummary.pendingVerification,
+      totalRecycledKg: round(partnerSummary.totalRecycledKg, 2),
+      totalRequestsHandled: partnerSummary.totalRequestsHandled,
     },
+
+    collectors: {
+      totalProfiles: collectorSummary.totalProfiles,
+      available: collectorSummary.available,
+      unavailable: collectorSummary.unavailable,
+      totalCompleted: collectorPerformance.totalCompleted,
+      totalFailed: collectorPerformance.totalFailed,
+      successRate: collectorSuccessRate,
+      averageRating: averageCollectorRating,
+      topPerformers: topCollectors,
+    },
+
     recycling: {
       byStatus: recyclingByStatus,
-      total: Object.values(recyclingByStatus).reduce((a, b) => a + b, 0),
+      total: recyclingTotal,
+      pending: recyclingByStatus.pending,
+      active: activeRecyclingRequests,
+      completed: recyclingByStatus.completed,
+      unsuccessful:
+        recyclingByStatus.rejected + recyclingByStatus.cancelled,
+      totalRequestedQuantityKg: round(
+        recyclingQuantities.totalRequestedQuantityKg,
+        2
+      ),
+      completedQuantityKg: round(
+        recyclingQuantities.completedQuantityKg,
+        2
+      ),
+      completionRate: recyclingCompletionRate,
+      materialBreakdown: materialBreakdown.map((item) => ({
+        category: item._id,
+        requestItems: item.requestItems,
+        quantityKg: round(item.quantityKg, 2),
+        completedQuantityKg: round(item.completedQuantityKg, 2),
+      })),
+      monthlyTrend: monthlyTrend.map((item) => ({
+        year: item._id.year,
+        month: item._id.month,
+        totalRequests: item.totalRequests,
+        completedRequests: item.completedRequests,
+        quantityKg: round(item.quantityKg, 2),
+      })),
     },
+
+    operations: {
+      operationalEfficiency,
+      pendingActions:
+        recyclingByStatus.pending + partnerSummary.pendingVerification,
+      generatedAt: new Date(),
+    },
+
     recentUsers,
   });
 });
@@ -126,7 +420,6 @@ export const getUserById = asyncHandler(async (req, res) => {
     return sendError(res, 404, "User not found");
   }
 
-  // Fetch the role-specific profile alongside the user.
   let profile = null;
   if (user.role === "resident") {
     profile = await ResidentProfile.findOne({ user: user._id }).populate(
@@ -157,7 +450,6 @@ export const toggleUserStatus = asyncHandler(async (req, res) => {
     return sendError(res, 404, "User not found");
   }
 
-  // Prevent admin from deactivating their own account.
   if (user._id.toString() === req.user._id.toString()) {
     return sendError(res, 400, "You cannot change your own account status");
   }

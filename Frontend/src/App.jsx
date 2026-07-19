@@ -8,11 +8,12 @@ import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
 
+
 // Resident
 import ResidentDashboard from './pages/resident/ResidentDashboard'
 import ResidentProfilePage from './pages/resident/ResidentProfilePage'
 import RecyclingRequestPage from './pages/resident/RecyclingRequestPage'
-
+import PickupRequestPage from './pages/resident/PickupRequestPage'
 // Collector
 import CollectorDashboard from './pages/collector/CollectorDashboard'
 import CollectorProfilePage from './pages/collector/CollectorProfilePage'
@@ -57,12 +58,28 @@ function App() {
       <Route element={<PrivateRoute />}>
         <Route element={<MainLayout />}>
           
-          {/* Resident Routes */}
-          <Route element={<RoleRoute roles={['resident']} />}>
-            <Route path="/resident/dashboard" element={<ResidentDashboard />} />
-            <Route path="/resident/profile" element={<ResidentProfilePage />} />
-            <Route path="/resident/recycling" element={<RecyclingRequestPage />} />
-          </Route>
+      {/* Resident Routes */}
+      <Route element={<RoleRoute roles={['resident']} />}>
+        <Route
+          path="/resident/dashboard"
+          element={<ResidentDashboard />}
+        />
+
+        <Route
+          path="/resident/profile"
+          element={<ResidentProfilePage />}
+        />
+
+        <Route
+          path="/resident/pickups"
+          element={<PickupRequestPage />}
+        />
+
+        <Route
+          path="/resident/recycling"
+          element={<RecyclingRequestPage />}
+        />
+      </Route>
 
           {/* Collector Routes */}
           <Route element={<RoleRoute roles={['collector']} />}>
