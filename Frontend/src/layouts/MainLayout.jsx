@@ -14,7 +14,8 @@ import {
   Settings,
   LayoutDashboard,
   MessageSquareWarning,
-  BookOpen
+  BookOpen,
+  Gift
 } from 'lucide-react'
 
 const MainLayout = () => {
@@ -38,6 +39,7 @@ const MainLayout = () => {
           { name: 'Dashboard', path: '/resident/dashboard', icon: LayoutDashboard },
           { name: 'Profile', path: '/resident/profile', icon: User },
           { name: 'Recycling', path: '/resident/recycling', icon: Recycle },
+          { name: 'Rewards', path: '/resident/rewards', icon: Gift },
           { name: 'Complaints', path: '/resident/complaints', icon: MessageSquareWarning },
           { name: 'Guidelines', path: '/resident/guidelines', icon: BookOpen },
         ]

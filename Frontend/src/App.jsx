@@ -14,6 +14,7 @@ import ResidentProfilePage from './pages/resident/ResidentProfilePage'
 import RecyclingRequestPage from './pages/resident/RecyclingRequestPage'
 import ResidentComplaintPage from './pages/resident/ResidentComplaintPage'
 import ResidentGuidelinesPage from './pages/resident/ResidentGuidelinesPage'
+import RewardsPage from './pages/resident/RewardsPage'
 
 // Collector
 import CollectorDashboard from './pages/collector/CollectorDashboard'
@@ -66,6 +67,7 @@ function App() {
             <Route path="/resident/dashboard" element={<ResidentDashboard />} />
             <Route path="/resident/profile" element={<ResidentProfilePage />} />
             <Route path="/resident/recycling" element={<RecyclingRequestPage />} />
+            <Route path="/resident/rewards" element={<RewardsPage />} />
             <Route path="/resident/complaints" element={<ResidentComplaintPage />} />
             <Route path="/resident/guidelines" element={<ResidentGuidelinesPage />} />
           </Route>

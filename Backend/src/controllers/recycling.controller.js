@@ -2,9 +2,8 @@ import mongoose from "mongoose";
 import RecyclingRequest from "../models/RecyclingRequest.model.js";
 import RecyclingPartner from "../models/RecyclingPartner.model.js";
 import ResidentProfile from "../models/ResidentProfile.model.js";
-import RewardTransaction from "../models/RewardTransaction.model.js";
-import WasteCategory from "../models/WasteCategory.model.js";
 import Notification from "../models/Notification.model.js";
+import { creditRecyclingReward } from "../utils/rewards.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import { validateCreateRecyclingRequest } from "../validations/recycling.validation.js";
@@ -303,49 +302,17 @@ export const updateRequestStatus = asyncHandler(async (req, res) => {
   if (status === "completed") {
     request.completedAt = new Date();
 
-    // Award reward points — sum up points for each material by kg.
-    const categories = request.materials.map((m) => m.category);
-    const wasteCats = await WasteCategory.find({ name: { $in: categories } });
-
-    let totalPoints = 0;
-    for (const mat of request.materials) {
-      const cat = wasteCats.find((wc) => wc.name === mat.category);
-      if (cat && cat.rewardPointsPerKg > 0) {
-        totalPoints += Math.floor(cat.rewardPointsPerKg * mat.estimatedQuantity);
-      }
-    }
-
-    if (totalPoints > 0) {
-      request.rewardPointsEarned = totalPoints;
-
-      // Credit to resident profile.
-      await ResidentProfile.findOneAndUpdate(
-        { user: request.resident },
-        { $inc: { totalRewardPoints: totalPoints } }
-      );
-
-      // Log the transaction.
-      const residentProfile = await ResidentProfile.findOne({
-        user: request.resident,
-      });
-      await RewardTransaction.create({
-        resident: request.resident,
-        residentProfile: residentProfile._id,
-        type: "earned",
-        points: totalPoints,
-        reason: "recycling_completed",
-        description: `Earned for recycling request #${request._id}`,
-        sourceDocument: request._id,
-        sourceModel: "RecyclingRequest",
-      });
-    }
+    // Credit reward points + write the ledger entry via the shared helper so
+    // this path and the partner completion path can never diverge.
+    const totalPoints = await creditRecyclingReward({ request });
 
     // Update partner stats.
     await RecyclingPartner.findByIdAndUpdate(partnerDoc._id, {
       $inc: { totalRequestsHandled: 1 },
     });
 
-    // Notify resident.
+    // Notify resident that the pickup is complete (the helper already sends a
+    // separate reward_earned notification for the points).
     await Notification.create({
       recipient: request.resident,
       title: "Recycling Completed!",
