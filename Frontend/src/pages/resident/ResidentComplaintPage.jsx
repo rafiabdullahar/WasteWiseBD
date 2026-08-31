@@ -113,6 +113,7 @@ const ResidentComplaintPage = () => {
   }
 
   const handleEdit = (c) => {
+    if (!window.confirm('Edit this complaint?')) return
     setEditingId(c._id)
     setForm({
       category: c.category,
@@ -203,6 +204,7 @@ const ResidentComplaintPage = () => {
                 type="date"
                 value={form.missedDate}
                 onChange={(e) => setForm({ ...form, missedDate: e.target.value })}
+                max={new Date().toISOString().split('T')[0]}
                 required
                 className="w-full rounded-xl bg-gray-800 border border-gray-700 p-3 text-white focus:outline-none focus:ring-2 focus:ring-brand-600"
               />

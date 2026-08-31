@@ -24,6 +24,8 @@ export const validateComplaintInput = (data) => {
 
   if (!missedDate) {
     errors.missedDate = "Missed date is required";
+  }else if (new Date(missedDate) > new Date()) {
+    errors.missedDate = "Missed date cannot be in the future";
   }
 
   return { isValid: Object.keys(errors).length === 0, errors };
