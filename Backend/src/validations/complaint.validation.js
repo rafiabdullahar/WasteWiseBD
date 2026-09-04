@@ -39,5 +39,13 @@ export const validateStatusUpdate = (data) => {
     errors.status = `status must be one of: ${validStatuses.join(", ")}`;
   }
 
+  if (
+    data.status === "Resolved" &&
+    (!data.resolutionNotes || !data.resolutionNotes.trim())
+  ) {
+    errors.resolutionNotes =
+      "Resolution notes are required when marking a complaint as Resolved";
+  }
+
   return { isValid: Object.keys(errors).length === 0, errors };
 };

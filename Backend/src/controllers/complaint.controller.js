@@ -102,13 +102,22 @@ export const updateComplaintStatus = asyncHandler(async (req, res) => {
   const { isValid, errors } = validateStatusUpdate(req.body);
   if (!isValid) return sendError(res, 400, "Validation failed", errors);
 
-  const complaint = await Complaint.findByIdAndUpdate(
-    req.params.id,
-    { status: req.body.status },
-    { new: true, runValidators: true }
-  );
-
+  const complaint = await Complaint.findById(req.params.id);
   if (!complaint) return sendError(res, 404, "Complaint not found");
+
+  complaint.status = req.body.status;
+
+  if (req.body.resolutionNotes) {
+    complaint.resolutionNotes = req.body.resolutionNotes;
+  }
+
+  complaint.statusHistory.push({
+    status: req.body.status,
+    note: req.body.resolutionNotes || req.body.note || "",
+  });
+
+  await complaint.save();
+  await complaint.populate("resident", "name email");
 
   return sendSuccess(res, 200, "Complaint status updated", { complaint });
 });
