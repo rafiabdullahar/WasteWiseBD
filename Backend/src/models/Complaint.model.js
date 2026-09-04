@@ -32,6 +32,10 @@ const complaintSchema = new mongoose.Schema(
       ref: "PickupRequest",
       default: null,
     },
+    addressId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: [true, "Address is required"],
+    },    
     description: {
       type: String,
       trim: true,

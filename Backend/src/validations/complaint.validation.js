@@ -18,8 +18,8 @@ export const validateComplaintInput = (data) => {
     errors.description = "Please describe the issue when selecting 'Other'";
   }
 
-  if (!area || !area.trim()) {
-    errors.area = "Area is required";
+  if (!data.addressId) {
+    errors.addressId = "Please select an address";
   }
 
   if (!missedDate) {
