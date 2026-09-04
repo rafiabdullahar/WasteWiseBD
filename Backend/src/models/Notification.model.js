@@ -47,6 +47,7 @@ const notificationSchema = new mongoose.Schema(
         "Complaint",
         "RewardTransaction",
         "RecyclingPartner",
+        "Schedule",
       ],
     },
     isRead: {

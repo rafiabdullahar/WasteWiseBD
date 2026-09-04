@@ -15,6 +15,8 @@ import adminRoutes from "./src/routes/admin.routes.js";
 import { notFound, errorHandler } from "./src/middleware/error.middleware.js";
 import guidelineRoutes from "./src/routes/guideline.routes.js";
 import rewardRoutes from "./src/routes/rewards.routes.js";
+import scheduleRoutes from "./src/routes/schedule.routes.js";
+import notificationRoutes from "./src/routes/notification.routes.js";
 
 const app = express();
 
@@ -44,6 +46,8 @@ app.use("/api/waste-categories", wasteCategoryRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/guidelines", guidelineRoutes);
 app.use("/api/rewards", rewardRoutes);
+app.use("/api/schedules", scheduleRoutes);
+app.use("/api/notifications", notificationRoutes);
 app.get("/api/health", (req, res) => {
   res.status(200).json({ success: true, message: "WasteWiseBD API is running" });
 });
