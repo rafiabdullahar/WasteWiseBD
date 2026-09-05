@@ -24,6 +24,7 @@ export const createComplaint = asyncHandler(async (req, res) => {
     resident: req.user._id,
     pickupRequest: req.body.pickupRequest || null,
     addressId: address._id,
+    serviceArea: address.serviceArea || null,
     category: req.body.category,
     description: req.body.description || "",
     area: address.area,
@@ -70,6 +71,7 @@ export const updateComplaint = asyncHandler(async (req, res) => {
   complaint.category = req.body.category || complaint.category;
   complaint.description = req.body.description || "";
   complaint.addressId = address._id;
+  complaint.serviceArea = address.serviceArea || null;
   complaint.area = address.area;
   complaint.missedDate = req.body.missedDate || null;
   await complaint.save();

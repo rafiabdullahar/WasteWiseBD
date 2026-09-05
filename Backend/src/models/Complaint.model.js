@@ -35,7 +35,12 @@ const complaintSchema = new mongoose.Schema(
     addressId: {
       type: mongoose.Schema.Types.ObjectId,
       required: [true, "Address is required"],
-    },    
+    },
+    serviceArea: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ServiceArea",
+      default: null,
+    },        
     description: {
       type: String,
       trim: true,
