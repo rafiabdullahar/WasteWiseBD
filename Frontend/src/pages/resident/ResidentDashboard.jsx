@@ -52,17 +52,18 @@ const ResidentDashboard = () => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="stat-card">
+        <Link to="/resident/rewards" className="stat-card hover:border-brand-700/60 transition-colors group">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-brand-900/50 flex items-center justify-center text-brand-400">
               <Award className="w-6 h-6" />
             </div>
-            <div>
+            <div className="flex-1">
               <p className="text-gray-400 text-sm font-medium">Reward Points</p>
               <h3 className="text-2xl font-bold text-white">{stats.rewardPoints}</h3>
             </div>
+            <ArrowRight className="w-4 h-4 text-gray-600 group-hover:text-brand-400 transition-colors" />
           </div>
-        </div>
+        </Link>
         <div className="stat-card">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-blue-900/50 flex items-center justify-center text-blue-400">

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
-import { Plus, Recycle, Loader2, MapPin, Calendar, Clock, Trash2 } from 'lucide-react'
+import { Plus, Recycle, Loader2, MapPin, Calendar, Clock, Trash2, Award } from 'lucide-react'
 import api from '../../services/api'
 
 const VALID_MATERIALS = ['organic', 'plastic', 'paper', 'glass', 'metal', 'electronic', 'hazardous']

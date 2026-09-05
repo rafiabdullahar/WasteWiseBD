@@ -2,10 +2,10 @@ import RecyclingPartner from "../models/RecyclingPartner.model.js";
 import User from "../models/User.model.js";
 import Notification from "../models/Notification.model.js";
 import RecyclingRequest from "../models/RecyclingRequest.model.js";
-import ResidentProfile from "../models/ResidentProfile.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import { validatePartnerProfileUpdate } from "../validations/partner.validation.js";
+import { creditRecyclingReward } from "../utils/rewards.js";
 
 // ─── Partner-facing request management ───────────────────────────────────────
 
@@ -70,19 +70,15 @@ export const updateRequestStatus = asyncHandler(async (req, res) => {
 
   request.status = status;
 
-  // Award resident points on completion.
+  // On completion, credit the resident's reward points + ledger (shared helper
+  // keeps balance and the RewardTransaction ledger in sync) and bump the
+  // partner's handled-requests stat.
   if (status === "completed") {
-    const pointsEarned = request.materials.reduce(
-      (sum, m) => sum + Math.floor(m.estimatedQuantity * 10),
-      0
-    );
-    request.rewardPointsEarned = pointsEarned;
-    if (pointsEarned > 0) {
-      await ResidentProfile.findOneAndUpdate(
-        { user: request.resident },
-        { $inc: { totalRewardPoints: pointsEarned } }
-      );
-    }
+    request.completedAt = new Date();
+    await creditRecyclingReward({ request });
+    await RecyclingPartner.findByIdAndUpdate(partner._id, {
+      $inc: { totalRequestsHandled: 1 },
+    });
   }
 
   await request.save();
