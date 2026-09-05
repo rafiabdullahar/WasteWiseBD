@@ -25,8 +25,18 @@ const populatePickupRequest = (query) =>
     })
     .populate("assignedBy", "name email");
 
-// Finds an active and available collector who covers the service area.
-// The collector with the fewest active tasks is selected.
+// Finds the best available collector for a service area.
+//
+// Assignment priority:
+// 1. Collector must cover the requested service area.
+// 2. Collector must be available.
+// 3. Collector's user account must be an active collector account.
+// 4. Collector with the fewest active tasks gets priority.
+// 5. If active workload is equal, collector with fewer completed
+//    tasks gets priority.
+// 6. If everything is equal, collector ID is used as a deterministic
+//    tie-breaker so MongoDB ordering does not make the assignment
+//    appear random.
 const findBestAvailableCollector = async (serviceAreaId) => {
   const collectors = await CollectorProfile.find({
     serviceAreas: serviceAreaId,
@@ -52,6 +62,7 @@ const findBestAvailableCollector = async (serviceAreaId) => {
     (collector) => collector._id
   );
 
+  // Count currently active requests for every eligible collector.
   const workloadRows = await WastePickupRequest.aggregate([
     {
       $match: {
@@ -74,16 +85,31 @@ const findBestAvailableCollector = async (serviceAreaId) => {
     ])
   );
 
+  // Sort according to the assignment priority.
   eligibleCollectors.sort((a, b) => {
-    const workloadA = workloadMap.get(a._id.toString()) || 0;
-    const workloadB = workloadMap.get(b._id.toString()) || 0;
+    const workloadA =
+      workloadMap.get(a._id.toString()) || 0;
 
+    const workloadB =
+      workloadMap.get(b._id.toString()) || 0;
+
+    // Priority 1: lowest active workload.
     if (workloadA !== workloadB) {
       return workloadA - workloadB;
     }
 
-    // Stable tie-breaker: prefer the collector with more completed tasks.
-    return (b.totalCompleted || 0) - (a.totalCompleted || 0);
+    // Priority 2: fewer completed tasks.
+    const completedA = a.totalCompleted || 0;
+    const completedB = b.totalCompleted || 0;
+
+    if (completedA !== completedB) {
+      return completedA - completedB;
+    }
+
+    // Priority 3: deterministic tie-breaker.
+    return a._id.toString().localeCompare(
+      b._id.toString()
+    );
   });
 
   return eligibleCollectors[0];
@@ -149,14 +175,17 @@ export const createPickupRequest = asyncHandler(async (req, res) => {
     );
   }
 
+  // Automatically select the best eligible collector.
   const bestCollector = await findBestAvailableCollector(
     serviceArea._id
   );
+
   const assignedAt = bestCollector ? new Date() : null;
 
   const requestData = {
     resident: req.user._id,
     residentProfile: residentProfile._id,
+
     pickupAddress: {
       label: selectedAddress.label || "Home",
       street: selectedAddress.street,
@@ -164,20 +193,28 @@ export const createPickupRequest = asyncHandler(async (req, res) => {
       city: selectedAddress.city,
       postalCode: selectedAddress.postalCode || "",
     },
+
     serviceArea: serviceArea._id,
+
     wasteItems: wasteItems.map((item) => ({
       category: item.category,
       estimatedQuantity: Number(item.estimatedQuantity),
     })),
+
     preferredDate,
     preferredTimeSlot: preferredTimeSlot || "morning",
     notes: notes?.trim() || "",
+
     status: bestCollector ? "assigned" : "pending",
+
     assignedCollector: bestCollector?._id || null,
+
     assignedAt,
+
     assignmentMethod: bestCollector ? "automatic" : null,
   };
 
+  // Store assignment history whenever a collector is automatically assigned.
   if (bestCollector) {
     requestData.assignmentHistory = [
       {
@@ -185,12 +222,15 @@ export const createPickupRequest = asyncHandler(async (req, res) => {
         assignedBy: null,
         method: "automatic",
         assignedAt,
-        note: "Automatically assigned by service area and workload",
+        note:
+          "Automatically assigned by service area, availability, and workload priority",
       },
     ];
   }
 
-  const createdRequest = await WastePickupRequest.create(requestData);
+  const createdRequest = await WastePickupRequest.create(
+    requestData
+  );
 
   const request = await populatePickupRequest(
     WastePickupRequest.findById(createdRequest._id)
@@ -216,10 +256,12 @@ export const getMyPickupRequests = asyncHandler(async (req, res) => {
   }
 
   const pageNumber = Math.max(Number(page) || 1, 1);
+
   const limitNumber = Math.min(
     Math.max(Number(limit) || 10, 1),
     100
   );
+
   const skip = (pageNumber - 1) * limitNumber;
 
   const filter = {
@@ -237,11 +279,13 @@ export const getMyPickupRequests = asyncHandler(async (req, res) => {
         .skip(skip)
         .limit(limitNumber)
     ),
+
     WastePickupRequest.countDocuments(filter),
   ]);
 
   return sendSuccess(res, 200, "Pickup requests fetched", {
     requests,
+
     pagination: {
       total,
       page: pageNumber,
@@ -301,13 +345,19 @@ export const cancelPickupRequest = asyncHandler(async (req, res) => {
   }
 
   request.status = "cancelled";
+
   await request.save();
 
   const populatedRequest = await populatePickupRequest(
     WastePickupRequest.findById(request._id)
   );
 
-  return sendSuccess(res, 200, "Pickup request cancelled", {
-    request: populatedRequest,
-  });
+  return sendSuccess(
+    res,
+    200,
+    "Pickup request cancelled",
+    {
+      request: populatedRequest,
+    }
+  );
 });

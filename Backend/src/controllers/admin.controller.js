@@ -1,6 +1,10 @@
+import mongoose from "mongoose";
 import User from "../models/User.model.js";
 import ResidentProfile from "../models/ResidentProfile.model.js";
 import CollectorProfile from "../models/CollectorProfile.model.js";
+import WastePickupRequest, {
+  PICKUP_STATUSES,
+} from "../models/WastePickupRequest.model.js";
 import RecyclingPartner from "../models/RecyclingPartner.model.js";
 import RecyclingRequest from "../models/RecyclingRequest.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -27,19 +31,20 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
   sixMonthsAgo.setDate(1);
   sixMonthsAgo.setHours(0, 0, 0, 0);
 
-  const [
-    userSummaryRows,
-    usersByRoleRows,
-    partnerSummaryRows,
-    collectorSummaryRows,
-    collectorPerformanceRows,
-    topCollectors,
-    recyclingStatusRows,
-    recyclingQuantityRows,
-    materialBreakdown,
-    monthlyTrend,
-    recentUsers,
-  ] = await Promise.all([
+      const [
+        userSummaryRows,
+        usersByRoleRows,
+        partnerSummaryRows,
+        collectorSummaryRows,
+        collectorPerformanceRows,
+        topCollectors,
+        recyclingStatusRows,
+        recyclingQuantityRows,
+        materialBreakdown,
+        monthlyTrend,
+        pickupQuantityRows,
+        recentUsers,
+      ] = await Promise.all([
     User.aggregate([
       {
         $group: {
@@ -89,7 +94,9 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
           totalCompleted: { $sum: "$totalCompleted" },
           totalFailed: { $sum: "$totalFailed" },
           ratedCollectors: {
-            $sum: { $cond: [{ $gt: ["$averageRating", 0] }, 1, 0] },
+            $sum: {
+              $cond: [{ $gt: ["$averageRating", 0] }, 1, 0],
+            },
           },
           ratingTotal: {
             $sum: {
@@ -110,8 +117,7 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
       .limit(5)
       .select(
         "user employeeId vehicleType isAvailable totalCompleted totalFailed averageRating"
-      )
-      .lean(),
+      ),
 
     RecyclingRequest.aggregate([
       {
@@ -179,7 +185,9 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
           _id: { year: "$year", month: "$month" },
           totalRequests: { $sum: 1 },
           completedRequests: {
-            $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] },
+            $sum: {
+              $cond: [{ $eq: ["$status", "completed"] }, 1, 0],
+            },
           },
           quantityKg: { $sum: "$quantityKg" },
         },
@@ -187,11 +195,11 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
       { $sort: { "_id.year": 1, "_id.month": 1 } },
     ]),
 
+
     User.find()
       .sort({ createdAt: -1 })
       .limit(5)
-      .select("name email role createdAt isActive")
-      .lean(),
+      .select("name email role createdAt isActive"),
   ]);
 
   const userSummary = userSummaryRows[0] || {
@@ -205,7 +213,12 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
       acc[current._id] = current.count;
       return acc;
     },
-    { resident: 0, collector: 0, partner: 0, admin: 0 }
+    {
+      resident: 0,
+      collector: 0,
+      partner: 0,
+      admin: 0,
+    }
   );
 
   const partnerSummary = partnerSummaryRows[0] || {
@@ -257,10 +270,13 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
     : 0;
 
   const totalCollectorTasks =
-    collectorPerformance.totalCompleted + collectorPerformance.totalFailed;
+    collectorPerformance.totalCompleted +
+    collectorPerformance.totalFailed;
 
   const collectorSuccessRate = totalCollectorTasks
-    ? round((collectorPerformance.totalCompleted / totalCollectorTasks) * 100)
+    ? round(
+        (collectorPerformance.totalCompleted / totalCollectorTasks) * 100
+      )
     : 0;
 
   const averageCollectorRating = collectorPerformance.ratedCollectors
@@ -272,9 +288,11 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
     : 0;
 
   const efficiencyInputs = [];
+
   if (actionableRecyclingRequests > 0) {
     efficiencyInputs.push(recyclingCompletionRate);
   }
+
   if (totalCollectorTasks > 0) {
     efficiencyInputs.push(collectorSuccessRate);
   }
@@ -339,12 +357,17 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
         2
       ),
       completionRate: recyclingCompletionRate,
+
       materialBreakdown: materialBreakdown.map((item) => ({
         category: item._id,
         requestItems: item.requestItems,
         quantityKg: round(item.quantityKg, 2),
-        completedQuantityKg: round(item.completedQuantityKg, 2),
+        completedQuantityKg: round(
+          item.completedQuantityKg,
+          2
+        ),
       })),
+
       monthlyTrend: monthlyTrend.map((item) => ({
         year: item._id.year,
         month: item._id.month,
@@ -357,7 +380,8 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
     operations: {
       operationalEfficiency,
       pendingActions:
-        recyclingByStatus.pending + partnerSummary.pendingVerification,
+        recyclingByStatus.pending +
+        partnerSummary.pendingVerification,
       generatedAt: new Date(),
     },
 
@@ -379,24 +403,51 @@ export const getAllUsers = asyncHandler(async (req, res) => {
   } = req.query;
 
   const filter = {};
-  if (role) filter.role = role;
-  if (isActive !== undefined) filter.isActive = isActive === "true";
+
+  if (role) {
+    filter.role = role;
+  }
+
+  if (isActive !== undefined) {
+    filter.isActive = isActive === "true";
+  }
+
   if (search) {
     filter.$or = [
-      { name: { $regex: search, $options: "i" } },
-      { email: { $regex: search, $options: "i" } },
+      {
+        name: {
+          $regex: search,
+          $options: "i",
+        },
+      },
+      {
+        email: {
+          $regex: search,
+          $options: "i",
+        },
+      },
     ];
   }
 
-  const skip = (Number(page) - 1) * Number(limit);
-  const sort = { [sortBy]: sortOrder === "asc" ? 1 : -1 };
+  const pageNumber = Math.max(Number(page) || 1, 1);
+  const limitNumber = Math.min(
+    Math.max(Number(limit) || 20, 1),
+    100
+  );
+
+  const skip = (pageNumber - 1) * limitNumber;
+
+  const sort = {
+    [sortBy]: sortOrder === "asc" ? 1 : -1,
+  };
 
   const [users, total] = await Promise.all([
     User.find(filter)
       .sort(sort)
       .skip(skip)
-      .limit(Number(limit))
+      .limit(limitNumber)
       .select("-password"),
+
     User.countDocuments(filter),
   ]);
 
@@ -404,9 +455,9 @@ export const getAllUsers = asyncHandler(async (req, res) => {
     users,
     pagination: {
       total,
-      page: Number(page),
-      limit: Number(limit),
-      pages: Math.ceil(total / Number(limit)),
+      page: pageNumber,
+      limit: limitNumber,
+      pages: Math.ceil(total / limitNumber),
     },
   });
 });
@@ -421,24 +472,34 @@ export const getUserById = asyncHandler(async (req, res) => {
   }
 
   let profile = null;
+
   if (user.role === "resident") {
-    profile = await ResidentProfile.findOne({ user: user._id }).populate(
+    profile = await ResidentProfile.findOne({
+      user: user._id,
+    }).populate(
       "addresses.serviceArea",
       "name city"
     );
   } else if (user.role === "collector") {
-    profile = await CollectorProfile.findOne({ user: user._id }).populate(
+    profile = await CollectorProfile.findOne({
+      user: user._id,
+    }).populate(
       "serviceAreas",
       "name city"
     );
   } else if (user.role === "partner") {
-    profile = await RecyclingPartner.findOne({ user: user._id }).populate(
+    profile = await RecyclingPartner.findOne({
+      user: user._id,
+    }).populate(
       "serviceAreas",
       "name city"
     );
   }
 
-  return sendSuccess(res, 200, "User fetched", { user, profile });
+  return sendSuccess(res, 200, "User fetched", {
+    user,
+    profile,
+  });
 });
 
 // @route  PATCH /api/admin/users/:id/status
@@ -450,17 +511,503 @@ export const toggleUserStatus = asyncHandler(async (req, res) => {
     return sendError(res, 404, "User not found");
   }
 
-  if (user._id.toString() === req.user._id.toString()) {
-    return sendError(res, 400, "You cannot change your own account status");
+  if (
+    user._id.toString() ===
+    req.user._id.toString()
+  ) {
+    return sendError(
+      res,
+      400,
+      "You cannot change your own account status"
+    );
   }
 
   user.isActive = !user.isActive;
+
   await user.save();
 
   return sendSuccess(
     res,
     200,
-    `User ${user.isActive ? "activated" : "deactivated"} successfully`,
-    { user: { id: user._id, name: user.name, isActive: user.isActive } }
+    `User ${
+      user.isActive
+        ? "activated"
+        : "deactivated"
+    } successfully`,
+    {
+      user: {
+        id: user._id,
+        name: user.name,
+        isActive: user.isActive,
+      },
+    }
   );
 });
+
+// ============================================================================
+// FEATURE 10 — COLLECTOR TASK ASSIGNMENT
+// ============================================================================
+
+// @route  GET /api/admin/pickup-requests
+// @access admin
+export const getAllPickupRequests = asyncHandler(
+  async (req, res) => {
+    const {
+      status,
+      serviceArea,
+      assigned,
+      page = 1,
+      limit = 20,
+    } = req.query;
+
+    const filter = {};
+
+    if (status) {
+      if (!PICKUP_STATUSES.includes(status)) {
+        return sendError(
+          res,
+          400,
+          "Invalid pickup request status"
+        );
+      }
+
+      filter.status = status;
+    }
+
+    if (serviceArea) {
+      if (
+        !mongoose.Types.ObjectId.isValid(
+          serviceArea
+        )
+      ) {
+        return sendError(
+          res,
+          400,
+          "Invalid service area ID"
+        );
+      }
+
+      filter.serviceArea = serviceArea;
+    }
+
+    if (assigned === "true") {
+      filter.assignedCollector = {
+        $ne: null,
+      };
+    } else if (assigned === "false") {
+      filter.assignedCollector = null;
+    }
+
+    const pageNumber = Math.max(
+      Number(page) || 1,
+      1
+    );
+
+    const limitNumber = Math.min(
+      Math.max(Number(limit) || 20, 1),
+      100
+    );
+
+    const skip =
+      (pageNumber - 1) * limitNumber;
+
+    const [requests, total] =
+      await Promise.all([
+        WastePickupRequest.find(filter)
+          .populate(
+            "resident",
+            "name email phone"
+          )
+          .populate(
+            "serviceArea",
+            "name city district"
+          )
+          .populate({
+            path: "assignedCollector",
+            select:
+              "user employeeId vehicleType vehicleNumber serviceAreas isAvailable totalCompleted totalFailed averageRating",
+            populate: {
+              path: "user",
+              select:
+                "name email phone isActive",
+            },
+          })
+          .populate(
+            "assignedBy",
+            "name email"
+          )
+          .sort({
+            preferredDate: 1,
+            createdAt: 1,
+          })
+          .skip(skip)
+          .limit(limitNumber),
+
+        WastePickupRequest.countDocuments(
+          filter
+        ),
+      ]);
+
+    return sendSuccess(
+      res,
+      200,
+      "Pickup requests fetched successfully",
+      {
+        requests,
+        pagination: {
+          total,
+          page: pageNumber,
+          limit: limitNumber,
+          pages: Math.ceil(
+            total / limitNumber
+          ),
+        },
+      }
+    );
+  }
+);
+
+// @route  GET /api/admin/collectors
+// @access admin
+export const getAssignmentCollectors =
+  asyncHandler(async (req, res) => {
+    const { serviceArea } = req.query;
+
+    const collectorFilter = {};
+
+    if (serviceArea) {
+      if (
+        !mongoose.Types.ObjectId.isValid(
+          serviceArea
+        )
+      ) {
+        return sendError(
+          res,
+          400,
+          "Invalid service area ID"
+        );
+      }
+
+      collectorFilter.serviceAreas =
+        serviceArea;
+    }
+
+    const collectors =
+      await CollectorProfile.find(
+        collectorFilter
+      )
+        .populate(
+          "user",
+          "name email phone role isActive"
+        )
+        .populate(
+          "serviceAreas",
+          "name city district isActive"
+        )
+        .lean();
+
+    const eligibleCollectors =
+      collectors.filter(
+        (collector) =>
+          collector.user &&
+          collector.user.role ===
+            "collector" &&
+          collector.user.isActive
+      );
+
+    const collectorIds =
+      eligibleCollectors.map(
+        (collector) => collector._id
+      );
+
+    const workloadRows =
+      await WastePickupRequest.aggregate([
+        {
+          $match: {
+            assignedCollector: {
+              $in: collectorIds,
+            },
+            status: {
+              $in: [
+                "assigned",
+                "on_the_way",
+              ],
+            },
+          },
+        },
+        {
+          $group: {
+            _id: "$assignedCollector",
+            activeTaskCount: {
+              $sum: 1,
+            },
+          },
+        },
+      ]);
+
+    const workloadMap = new Map(
+      workloadRows.map((row) => [
+        row._id.toString(),
+        row.activeTaskCount,
+      ])
+    );
+
+    const result = eligibleCollectors
+      .map((collector) => ({
+        ...collector,
+        activeTaskCount:
+          workloadMap.get(
+            collector._id.toString()
+          ) || 0,
+      }))
+      .sort((a, b) => {
+        // Available collectors first.
+        if (
+          a.isAvailable !==
+          b.isAvailable
+        ) {
+          return a.isAvailable
+            ? -1
+            : 1;
+        }
+
+        // Lowest workload next.
+        if (
+          a.activeTaskCount !==
+          b.activeTaskCount
+        ) {
+          return (
+            a.activeTaskCount -
+            b.activeTaskCount
+          );
+        }
+
+        // Deterministic tie-breaker:
+        // fewer completed tasks first.
+        return (
+          (a.totalCompleted || 0) -
+          (b.totalCompleted || 0)
+        );
+      });
+
+    return sendSuccess(
+      res,
+      200,
+      "Collectors fetched successfully",
+      {
+        collectors: result,
+      }
+    );
+  });
+
+// @route  PATCH /api/admin/pickup-requests/:id/assign
+// @access admin
+export const assignPickupRequest =
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const {
+      collectorId,
+      note = "",
+    } = req.body;
+
+    // Validate pickup request ID.
+    if (
+      !mongoose.Types.ObjectId.isValid(id)
+    ) {
+      return sendError(
+        res,
+        400,
+        "Invalid pickup request ID"
+      );
+    }
+
+    // Validate collector ID.
+    if (
+      !collectorId ||
+      !mongoose.Types.ObjectId.isValid(
+        collectorId
+      )
+    ) {
+      return sendError(
+        res,
+        400,
+        "A valid collector ID is required"
+      );
+    }
+
+    // Find pickup request.
+    const request =
+      await WastePickupRequest.findById(id);
+
+    if (!request) {
+      return sendError(
+        res,
+        404,
+        "Pickup request not found"
+      );
+    }
+
+    // Completed, failed and cancelled requests
+    // should not be reassigned.
+    if (
+      [
+        "collected",
+        "failed",
+        "cancelled",
+      ].includes(request.status)
+    ) {
+      return sendError(
+        res,
+        400,
+        `A request in '${request.status}' status cannot be assigned`
+      );
+    }
+
+    // Find collector.
+    const collector =
+      await CollectorProfile.findById(
+        collectorId
+      ).populate(
+        "user",
+        "name email phone role isActive"
+      );
+
+    if (!collector) {
+      return sendError(
+        res,
+        404,
+        "Collector not found"
+      );
+    }
+
+    // Make sure this is a collector profile.
+    if (
+      !collector.user ||
+      collector.user.role !==
+        "collector"
+    ) {
+      return sendError(
+        res,
+        400,
+        "Selected profile does not belong to a collector"
+      );
+    }
+
+    // Collector account must be active.
+    if (!collector.user.isActive) {
+      return sendError(
+        res,
+        400,
+        "Selected collector account is inactive"
+      );
+    }
+
+    // Collector must currently be available.
+    if (!collector.isAvailable) {
+      return sendError(
+        res,
+        400,
+        "Selected collector is currently unavailable"
+      );
+    }
+
+    // Collector must cover the request's service area.
+    const coversServiceArea =
+      collector.serviceAreas.some(
+        (areaId) =>
+          areaId.toString() ===
+          request.serviceArea.toString()
+      );
+
+    if (!coversServiceArea) {
+      return sendError(
+        res,
+        400,
+        "Selected collector does not cover this service area"
+      );
+    }
+
+    const previousCollector =
+      request.assignedCollector;
+
+    const isReassignment =
+      previousCollector &&
+      previousCollector.toString() !==
+        collector._id.toString();
+
+    const assignedAt = new Date();
+
+    // Update current assignment.
+    request.assignedCollector =
+      collector._id;
+
+    request.assignedBy =
+      req.user._id;
+
+    request.assignedAt =
+      assignedAt;
+
+    request.assignmentMethod =
+      "manual";
+
+    request.assignmentNote =
+      typeof note === "string"
+        ? note.trim()
+        : "";
+
+    request.status = "assigned";
+
+    // Preserve assignment history.
+    request.assignmentHistory.push({
+      collector: collector._id,
+      assignedBy: req.user._id,
+      method: "manual",
+      assignedAt,
+      note:
+        request.assignmentNote ||
+        (isReassignment
+          ? "Pickup request reassigned by administrator"
+          : "Pickup request manually assigned by administrator"),
+    });
+
+    await request.save();
+
+    // Return populated request.
+    const populatedRequest =
+      await WastePickupRequest.findById(
+        request._id
+      )
+        .populate(
+          "resident",
+          "name email phone"
+        )
+        .populate(
+          "serviceArea",
+          "name city district"
+        )
+        .populate({
+          path: "assignedCollector",
+          select:
+            "user employeeId vehicleType vehicleNumber serviceAreas isAvailable totalCompleted totalFailed averageRating",
+          populate: {
+            path: "user",
+            select:
+              "name email phone isActive",
+          },
+        })
+        .populate(
+          "assignedBy",
+          "name email"
+        );
+
+    return sendSuccess(
+      res,
+      200,
+      isReassignment
+        ? "Pickup request reassigned successfully"
+        : "Pickup request assigned successfully",
+      {
+        request: populatedRequest,
+      }
+    );
+  });

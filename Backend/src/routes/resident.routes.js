@@ -1,4 +1,5 @@
 import express from "express";
+
 import {
   getProfile,
   updateProfile,
@@ -6,13 +7,16 @@ import {
   addAddress,
   updateAddress,
   deleteAddress,
+  checkAddressCoverage,
 } from "../controllers/resident.controller.js";
+
 import {
   createPickupRequest,
   getMyPickupRequests,
   getMyPickupRequestById,
   cancelPickupRequest,
 } from "../controllers/pickupRequest.controller.js";
+
 import {
   protect,
   restrictTo,
@@ -20,31 +24,55 @@ import {
 
 const router = express.Router();
 
-// All routes below require authentication and resident role.
+// All resident routes require authentication
+// and the user must have the resident role.
 router.use(protect, restrictTo("resident"));
 
-// Resident profile
-router.route("/profile").get(getProfile).put(updateProfile);
+// ─── Profile ────────────────────────────────────────────────────────────────
 
-// Resident addresses
-router.route("/addresses").get(getAddresses).post(addAddress);
+router
+  .route("/profile")
+  .get(getProfile)
+  .put(updateProfile);
+
+// ─── Addresses ──────────────────────────────────────────────────────────────
+
+router
+  .route("/addresses")
+  .get(getAddresses)
+  .post(addAddress);
+
+// Feature 6:
+// Check whether a resident's selected address
+// is inside an active supported service area.
+router.get(
+  "/addresses/:addressId/coverage",
+  checkAddressCoverage
+);
 
 router
   .route("/addresses/:addressId")
   .put(updateAddress)
   .delete(deleteAddress);
 
-// Feature 3: Waste Pickup Request
+// ─── Pickup Requests ────────────────────────────────────────────────────────
+
+// Create a new pickup request
+// POST /api/residents/pickup-requests
 router
   .route("/pickup-requests")
-  .post(createPickupRequest)
-  .get(getMyPickupRequests);
+  .get(getMyPickupRequests)
+  .post(createPickupRequest);
 
+// Get a specific pickup request
+// GET /api/residents/pickup-requests/:id
 router.get(
   "/pickup-requests/:id",
   getMyPickupRequestById
 );
 
+// Cancel a pickup request
+// PATCH /api/residents/pickup-requests/:id/cancel
 router.patch(
   "/pickup-requests/:id/cancel",
   cancelPickupRequest

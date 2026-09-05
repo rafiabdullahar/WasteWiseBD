@@ -8,7 +8,6 @@ import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
 
-
 // Resident
 import ResidentDashboard from './pages/resident/ResidentDashboard'
 import ResidentProfilePage from './pages/resident/ResidentProfilePage'
@@ -18,6 +17,7 @@ import ResidentGuidelinesPage from './pages/resident/ResidentGuidelinesPage'
 import RewardsPage from './pages/resident/RewardsPage'
 import ResidentCalendarPage from './pages/resident/ResidentCalendarPage'
 import PickupRequestPage from './pages/resident/PickupRequestPage'
+
 // Collector
 import CollectorDashboard from './pages/collector/CollectorDashboard'
 import CollectorProfilePage from './pages/collector/CollectorProfilePage'
@@ -34,92 +34,169 @@ import AdminServiceAreasPage from './pages/admin/AdminServiceAreasPage'
 import AdminComplaintsPage from './pages/admin/AdminComplaintsPage'
 import AdminGuidelinesPage from './pages/admin/AdminGuidelinesPage'
 import AdminSchedulesPage from './pages/admin/AdminSchedulesPage'
+import AdminPickupAssignmentsPage from './pages/admin/AdminPickupAssignmentsPage'
+
 
 function App() {
   return (
     <Routes>
       {/* Public Routes */}
       <Route path="/" element={<LandingPage />} />
-      
+
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
       </Route>
 
-      <Route path="/unauthorized" element={
-        <div className="min-h-screen flex items-center justify-center bg-gray-950 text-center p-4">
-          <div className="card-glass border border-red-900/50">
-            <h1 className="text-3xl font-bold text-white mb-4">Unauthorized Access</h1>
-            <p className="text-gray-400 mb-6">You don't have permission to view this page.</p>
-            <button 
-              onClick={() => window.history.back()} 
-              className="btn-primary"
-            >
-              Go Back
-            </button>
+      <Route
+        path="/unauthorized"
+        element={
+          <div className="min-h-screen flex items-center justify-center bg-gray-950 text-center p-4">
+            <div className="card-glass border border-red-900/50">
+              <h1 className="text-3xl font-bold text-white mb-4">
+                Unauthorized Access
+              </h1>
+
+              <p className="text-gray-400 mb-6">
+                You don't have permission to view this page.
+              </p>
+
+              <button
+                onClick={() => window.history.back()}
+                className="btn-primary"
+              >
+                Go Back
+              </button>
+            </div>
           </div>
-        </div>
-      } />
+        }
+      />
 
       {/* Protected Routes inside MainLayout */}
       <Route element={<PrivateRoute />}>
         <Route element={<MainLayout />}>
-          
-      {/* Resident Routes */}
-      <Route element={<RoleRoute roles={['resident']} />}>
-        <Route
-          path="/resident/dashboard"
-          element={<ResidentDashboard />}
-        />
 
-        <Route
-          path="/resident/profile"
-          element={<ResidentProfilePage />}
-        />
+          {/* Resident Routes */}
+          <Route element={<RoleRoute roles={['resident']} />}>
+            <Route
+              path="/resident/dashboard"
+              element={<ResidentDashboard />}
+            />
 
-        <Route
-          path="/resident/pickups"
-          element={<PickupRequestPage />}
-        />
+            <Route
+              path="/resident/profile"
+              element={<ResidentProfilePage />}
+            />
 
-        <Route
-          path="/resident/recycling"
-          element={<RecyclingRequestPage />}
-        />
-            <Route path="/resident/rewards" element={<RewardsPage />} />
-            <Route path="/resident/complaints" element={<ResidentComplaintPage />} />
-            <Route path="/resident/guidelines" element={<ResidentGuidelinesPage />} />
-            <Route path="/resident/calendar" element={<ResidentCalendarPage />} />
-      </Route>
+            <Route
+              path="/resident/pickups"
+              element={<PickupRequestPage />}
+            />
+
+            <Route
+              path="/resident/recycling"
+              element={<RecyclingRequestPage />}
+            />
+
+            <Route
+              path="/resident/rewards"
+              element={<RewardsPage />}
+            />
+
+            <Route
+              path="/resident/complaints"
+              element={<ResidentComplaintPage />}
+            />
+
+            <Route
+              path="/resident/guidelines"
+              element={<ResidentGuidelinesPage />}
+            />
+
+            <Route
+              path="/resident/calendar"
+              element={<ResidentCalendarPage />}
+            />
+          </Route>
 
           {/* Collector Routes */}
           <Route element={<RoleRoute roles={['collector']} />}>
-            <Route path="/collector/dashboard" element={<CollectorDashboard />} />
-            <Route path="/collector/profile" element={<CollectorProfilePage />} />
+            <Route
+              path="/collector/dashboard"
+              element={<CollectorDashboard />}
+            />
+
+            <Route
+              path="/collector/profile"
+              element={<CollectorProfilePage />}
+            />
           </Route>
 
           {/* Partner Routes */}
           <Route element={<RoleRoute roles={['partner']} />}>
-            <Route path="/partner/dashboard" element={<PartnerDashboard />} />
-            <Route path="/partner/profile" element={<PartnerProfilePage />} />
+            <Route
+              path="/partner/dashboard"
+              element={<PartnerDashboard />}
+            />
+
+            <Route
+              path="/partner/profile"
+              element={<PartnerProfilePage />}
+            />
           </Route>
 
           {/* Admin Routes */}
           <Route element={<RoleRoute roles={['admin']} />}>
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/admin/users" element={<AdminUsersPage />} />
-            <Route path="/admin/partners" element={<AdminPartnersPage />} />
-            <Route path="/admin/service-areas" element={<AdminServiceAreasPage />} />
-            <Route path="/admin/complaints" element={<AdminComplaintsPage />} />
-            <Route path="/admin/guidelines" element={<AdminGuidelinesPage />} />
-            <Route path="/admin/schedules" element={<AdminSchedulesPage />} />
+            <Route
+              path="/admin/dashboard"
+              element={<AdminDashboard />}
+            />
+
+            <Route
+              path="/admin/users"
+              element={<AdminUsersPage />}
+            />
+
+            <Route
+              path="/admin/partners"
+              element={<AdminPartnersPage />}
+            />
+
+            <Route
+              path="/admin/service-areas"
+              element={<AdminServiceAreasPage />}
+            />
+
+            <Route
+              path="/admin/complaints"
+              element={<AdminComplaintsPage />}
+            />
+
+            <Route
+              path="/admin/guidelines"
+              element={<AdminGuidelinesPage />}
+            />
+
+            <Route
+              path="/admin/schedules"
+              element={<AdminSchedulesPage />}
+            />
+
+            {/* Feature 10 — Collector Task Assignment */}
+            <Route
+              path="/admin/pickup-assignments"
+              element={<AdminPickupAssignmentsPage />}
+            />
           </Route>
 
         </Route>
       </Route>
 
       {/* Catch-all 404 */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route
+        path="*"
+        element={<Navigate to="/" replace />}
+      />
     </Routes>
   )
 }
