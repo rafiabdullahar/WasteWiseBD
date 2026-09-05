@@ -1,5 +1,25 @@
 import mongoose from "mongoose";
 
+const statusHistorySchema = new mongoose.Schema(
+  {
+    status: {
+      type: String,
+      enum: ["Open", "Investigating", "Resolved", "Closed"],
+      required: true,
+    },
+    note: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    changedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { _id: false }
+);
+
 const complaintSchema = new mongoose.Schema(
   {
     resident: {
@@ -12,11 +32,20 @@ const complaintSchema = new mongoose.Schema(
       ref: "PickupRequest",
       default: null,
     },
+    addressId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: [true, "Address is required"],
+    },
+    serviceArea: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ServiceArea",
+      default: null,
+    },        
     description: {
-  type: String,
-  trim: true,
-  default: "",
-},
+      type: String,
+      trim: true,
+      default: "",
+    },
     category: {
       type: String,
       enum: [
@@ -45,6 +74,20 @@ const complaintSchema = new mongoose.Schema(
       type: String,
       enum: ["Open", "Investigating", "Resolved", "Closed"],
       default: "Open",
+    },
+    resolutionNotes: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    statusHistory: {
+      type: [statusHistorySchema],
+      default: [],
+    },
+    assignedCollector: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
     },
   },
   { timestamps: true }

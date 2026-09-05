@@ -2,6 +2,7 @@ import Complaint from "../models/Complaint.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import { validateComplaintInput, validateStatusUpdate } from "../validations/complaint.validation.js";
+import ResidentProfile from "../models/ResidentProfile.model.js";
 
 // @route  POST /api/complaints
 // @access Private (Resident)
@@ -9,12 +10,24 @@ export const createComplaint = asyncHandler(async (req, res) => {
   const { isValid, errors } = validateComplaintInput(req.body);
   if (!isValid) return sendError(res, 400, "Validation failed", errors);
 
+  const profile = await ResidentProfile.findOne({ user: req.user._id });
+  if (!profile) {
+    return sendError(res, 404, "Resident profile not found");
+  }
+
+  const address = profile.addresses.id(req.body.addressId);
+  if (!address) {
+    return sendError(res, 404, "That address does not belong to your account");
+  }
+
   const complaint = await Complaint.create({
     resident: req.user._id,
     pickupRequest: req.body.pickupRequest || null,
+    addressId: address._id,
+    serviceArea: address.serviceArea || null,
     category: req.body.category,
     description: req.body.description || "",
-    area: req.body.area || "",
+    area: address.area,
     missedDate: req.body.missedDate || null,
     evidenceUrl: req.file ? `/uploads/complaints/${req.file.filename}` : "",
   });
@@ -45,14 +58,27 @@ export const updateComplaint = asyncHandler(async (req, res) => {
   const { isValid, errors } = validateComplaintInput(req.body);
   if (!isValid) return sendError(res, 400, "Validation failed", errors);
 
+  const profile = await ResidentProfile.findOne({ user: req.user._id });
+  if (!profile) {
+    return sendError(res, 404, "Resident profile not found");
+  }
+
+  const address = profile.addresses.id(req.body.addressId);
+  if (!address) {
+    return sendError(res, 404, "That address does not belong to your account");
+  }
+
   complaint.category = req.body.category || complaint.category;
   complaint.description = req.body.description || "";
-  complaint.area = req.body.area || "";
+  complaint.addressId = address._id;
+  complaint.serviceArea = address.serviceArea || null;
+  complaint.area = address.area;
   complaint.missedDate = req.body.missedDate || null;
   await complaint.save();
 
   return sendSuccess(res, 200, "Complaint updated", { complaint });
 });
+
 
 // @route  DELETE /api/complaints/:id
 // @access Private (Resident, own complaint, only while status is "Open")
@@ -102,13 +128,22 @@ export const updateComplaintStatus = asyncHandler(async (req, res) => {
   const { isValid, errors } = validateStatusUpdate(req.body);
   if (!isValid) return sendError(res, 400, "Validation failed", errors);
 
-  const complaint = await Complaint.findByIdAndUpdate(
-    req.params.id,
-    { status: req.body.status },
-    { new: true, runValidators: true }
-  );
-
+  const complaint = await Complaint.findById(req.params.id);
   if (!complaint) return sendError(res, 404, "Complaint not found");
+
+  complaint.status = req.body.status;
+
+  if (req.body.resolutionNotes) {
+    complaint.resolutionNotes = req.body.resolutionNotes;
+  }
+
+  complaint.statusHistory.push({
+    status: req.body.status,
+    note: req.body.resolutionNotes || req.body.note || "",
+  });
+
+  await complaint.save();
+  await complaint.populate("resident", "name email");
 
   return sendSuccess(res, 200, "Complaint status updated", { complaint });
 });

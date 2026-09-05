@@ -17,6 +17,8 @@ import guidelineRoutes from "./src/routes/guideline.routes.js";
 import rewardRoutes from "./src/routes/rewards.routes.js";
 import scheduleRoutes from "./src/routes/schedule.routes.js";
 import notificationRoutes from "./src/routes/notification.routes.js";
+import { connectCloudinary } from "./src/config/cloudinary.js";
+import overflowReportRoutes from "./src/routes/overflowReport.routes.js";
 
 const app = express();
 
@@ -33,10 +35,12 @@ app.use("/uploads", express.static("uploads"));
 
 // --- Database ---
 connectDB();
+connectCloudinary();
 
 // --- Routes ---
 app.use("/api/auth", authRoutes);
 app.use("/api/complaints", complaintRoutes);
+app.use("/api/overflow-reports", overflowReportRoutes);
 app.use("/api/residents", residentRoutes);
 app.use("/api/collectors", collectorRoutes);
 app.use("/api/partners", partnerRoutes);

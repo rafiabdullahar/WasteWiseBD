@@ -16,6 +16,7 @@ import ResidentComplaintPage from './pages/resident/ResidentComplaintPage'
 import ResidentGuidelinesPage from './pages/resident/ResidentGuidelinesPage'
 import RewardsPage from './pages/resident/RewardsPage'
 import ResidentCalendarPage from './pages/resident/ResidentCalendarPage'
+import ResidentOverflowReportPage from './pages/resident/ResidentOverflowReportPage'
 import PickupRequestPage from './pages/resident/PickupRequestPage'
 import ResidentHistoryPage from './pages/resident/ResidentHistoryPage'
 
@@ -36,9 +37,9 @@ import AdminServiceAreasPage from './pages/admin/AdminServiceAreasPage'
 import AdminComplaintsPage from './pages/admin/AdminComplaintsPage'
 import AdminGuidelinesPage from './pages/admin/AdminGuidelinesPage'
 import AdminSchedulesPage from './pages/admin/AdminSchedulesPage'
+import AdminOverflowReportsPage from './pages/admin/AdminOverflowReportsPage'
 import AdminPickupAssignmentsPage from './pages/admin/AdminPickupAssignmentsPage'
 import AdminSearchPage from './pages/admin/AdminSearchPage'
-
 
 function App() {
   return (
@@ -109,6 +110,11 @@ function App() {
             <Route
               path="/resident/complaints"
               element={<ResidentComplaintPage />}
+            />
+
+            <Route
+              path="/resident/overflow-reports"
+              element={<ResidentOverflowReportPage />}
             />
 
             <Route
@@ -185,6 +191,11 @@ function App() {
             <Route
               path="/admin/complaints"
               element={<AdminComplaintsPage />}
+            />
+
+            <Route
+              path="/admin/overflow-reports"
+              element={<AdminOverflowReportsPage />}
             />
 
             <Route
