@@ -43,6 +43,7 @@ import AdminPickupAssignmentsPage from './pages/admin/AdminPickupAssignmentsPage
 import AdminSearchPage from './pages/admin/AdminSearchPage'
 import AdminAnalyticsPage from './pages/admin/AdminAnalyticsPage'
 import AdminRoutesPage from './pages/admin/AdminRoutesPage'
+import AdminCollectorPerformancePage from './pages/admin/AdminCollectorPerformancePage'
 
 function App() {
   return (
@@ -240,6 +241,8 @@ function App() {
               path="/admin/routes"
               element={<AdminRoutesPage />}
             />
+
+            <Route path="/admin/collector-performance" element={<AdminCollectorPerformancePage />} />
           </Route>
 
         </Route>

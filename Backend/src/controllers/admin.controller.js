@@ -1010,3 +1010,66 @@ export const assignPickupRequest =
       }
     );
   });
+
+  // FEATURE 17 — COLLECTOR PERFORMANCE MONITORING
+
+// @route  GET /api/admin/collectors/performance
+// @access admin
+export const getCollectorsPerformance = asyncHandler(async (req, res) => {
+  const collectors = await CollectorProfile.find()
+    .populate("user", "name email isActive")
+    .select(
+      "user employeeId totalCompleted totalFailed averageRating isAvailable"
+    );
+
+  const performanceReport = await Promise.all(
+    collectors.map(async (profile) => {
+      const completedRequests = await WastePickupRequest.find({
+        assignedCollector: profile._id,
+        status: "collected",
+        completedAt: { $ne: null },
+      }).select("preferredDate completedAt");
+
+      let onTimeCount = 0;
+
+      completedRequests.forEach((request) => {
+        const preferredDay = new Date(request.preferredDate).toDateString();
+        const completedDay = new Date(request.completedAt).toDateString();
+
+        if (preferredDay === completedDay) {
+          onTimeCount += 1;
+        }
+      });
+
+      const totalCompletedInWindow = completedRequests.length;
+      const punctualityRate =
+        totalCompletedInWindow > 0
+          ? Number(((onTimeCount / totalCompletedInWindow) * 100).toFixed(1))
+          : null;
+
+      const totalJobs = profile.totalCompleted + profile.totalFailed;
+      const successRate =
+        totalJobs > 0
+          ? Number(((profile.totalCompleted / totalJobs) * 100).toFixed(1))
+          : null;
+
+      return {
+        collectorId: profile._id,
+        name: profile.user?.name,
+        email: profile.user?.email,
+        isActive: profile.user?.isActive,
+        employeeId: profile.employeeId,
+        isAvailable: profile.isAvailable,
+        totalCompleted: profile.totalCompleted,
+        totalFailed: profile.totalFailed,
+        successRate,
+        punctualityRate,
+        averageRating: profile.averageRating,
+      };
+    })
+  );
+
+  return sendSuccess(res, 200, "Collector performance report fetched", {
+    collectors: performanceReport,
+  });
+});

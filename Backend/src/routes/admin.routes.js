@@ -8,6 +8,7 @@ import {
   getAllPickupRequests,
   getAssignmentCollectors,
   assignPickupRequest,
+  getCollectorsPerformance,
 } from "../controllers/admin.controller.js";
 
 import {
@@ -71,6 +72,13 @@ router.get(
 router.patch(
   "/pickup-requests/:id/assign",
   assignPickupRequest
+);
+
+// ─── Feature 17: Collector Performance Monitoring ──────────────────────────
+
+router.get(
+  "/collectors/performance",
+  getCollectorsPerformance
 );
 
 // ─── Feature 19: Advanced Search & Filtering ────────────────────────────────
