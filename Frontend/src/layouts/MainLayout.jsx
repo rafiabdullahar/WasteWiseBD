@@ -22,6 +22,7 @@ import {
   History,
   Search,
   BarChart3,
+  Route as RouteIcon,
 } from 'lucide-react'
 
 const MainLayout = () => {
@@ -56,6 +57,7 @@ const MainLayout = () => {
       case 'collector':
         return [
           { name: 'Dashboard', path: '/collector/dashboard', icon: LayoutDashboard },
+          { name: 'My Routes', path: '/collector/routes', icon: RouteIcon },
           { name: 'History', path: '/collector/history', icon: History },
           { name: 'Profile', path: '/collector/profile', icon: User },
         ]
@@ -72,6 +74,7 @@ const MainLayout = () => {
           { name: 'Users', path: '/admin/users', icon: Users },
           { name: 'Partners', path: '/admin/partners', icon: Recycle },
           { name: 'Service Areas', path: '/admin/service-areas', icon: Map },
+          { name: 'Routes', path: '/admin/routes', icon: RouteIcon },
           { name: 'Schedules', path: '/admin/schedules', icon: CalendarDays },
           { name: 'Pickup Assignments', path: '/admin/pickup-assignments', icon: Truck },
           { name: 'Analytics', path: '/admin/analytics', icon: BarChart3 },

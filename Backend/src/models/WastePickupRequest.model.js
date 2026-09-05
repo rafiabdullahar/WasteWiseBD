@@ -33,7 +33,10 @@ const assignmentHistorySchema = new mongoose.Schema(
     },
     method: {
       type: String,
-      enum: ["automatic", "manual"],
+      // "route" is added by Feature 5 (Area-Based Route Management): a request
+      // claimed by dispatching a collection route. Purely additive — existing
+      // "automatic" and "manual" records remain valid and need no migration.
+      enum: ["automatic", "manual", "route"],
       required: true,
     },
     assignedAt: {
@@ -157,7 +160,8 @@ const wastePickupRequestSchema = new mongoose.Schema(
     },
     assignmentMethod: {
       type: String,
-      enum: ["automatic", "manual"],
+      // See the note on assignmentHistory.method above — additive only.
+      enum: ["automatic", "manual", "route"],
       default: null,
     },
     assignmentNote: {

@@ -20,6 +20,7 @@ import notificationRoutes from "./src/routes/notification.routes.js";
 import { connectCloudinary } from "./src/config/cloudinary.js";
 import overflowReportRoutes from "./src/routes/overflowReport.routes.js";
 import analyticsRoutes from "./src/routes/analytics.routes.js";
+import collectionRouteRoutes from "./src/routes/route.routes.js";
 
 const app = express();
 
@@ -54,6 +55,7 @@ app.use("/api/rewards", rewardRoutes);
 app.use("/api/schedules", scheduleRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/routes", collectionRouteRoutes);
 app.get("/api/health", (req, res) => {
   res.status(200).json({ success: true, message: "WasteWiseBD API is running" });
 });

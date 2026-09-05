@@ -24,6 +24,7 @@ import ResidentHistoryPage from './pages/resident/ResidentHistoryPage'
 import CollectorDashboard from './pages/collector/CollectorDashboard'
 import CollectorProfilePage from './pages/collector/CollectorProfilePage'
 import CollectorHistoryPage from './pages/collector/CollectorHistoryPage'
+import CollectorRoutesPage from './pages/collector/CollectorRoutesPage'
 
 // Partner
 import PartnerDashboard from './pages/partner/PartnerDashboard'
@@ -41,6 +42,7 @@ import AdminOverflowReportsPage from './pages/admin/AdminOverflowReportsPage'
 import AdminPickupAssignmentsPage from './pages/admin/AdminPickupAssignmentsPage'
 import AdminSearchPage from './pages/admin/AdminSearchPage'
 import AdminAnalyticsPage from './pages/admin/AdminAnalyticsPage'
+import AdminRoutesPage from './pages/admin/AdminRoutesPage'
 
 function App() {
   return (
@@ -152,6 +154,12 @@ function App() {
               path="/collector/history"
               element={<CollectorHistoryPage />}
             />
+
+            {/* Feature 5 — Area-Based Route Management */}
+            <Route
+              path="/collector/routes"
+              element={<CollectorRoutesPage />}
+            />
           </Route>
 
           {/* Partner Routes */}
@@ -225,6 +233,12 @@ function App() {
             <Route
               path="/admin/analytics"
               element={<AdminAnalyticsPage />}
+            />
+
+            {/* Feature 5 — Area-Based Route Management */}
+            <Route
+              path="/admin/routes"
+              element={<AdminRoutesPage />}
             />
           </Route>
 
