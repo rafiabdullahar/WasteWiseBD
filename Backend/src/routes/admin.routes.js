@@ -11,6 +11,14 @@ import {
 } from "../controllers/admin.controller.js";
 
 import {
+  searchPickupRequests,
+  searchRecyclingRequests,
+  searchComplaints,
+  searchCollectors,
+  searchPartners,
+} from "../controllers/search.controller.js";
+
+import {
   protect,
   restrictTo,
 } from "../middleware/auth.middleware.js";
@@ -64,5 +72,13 @@ router.patch(
   "/pickup-requests/:id/assign",
   assignPickupRequest
 );
+
+// ─── Feature 19: Advanced Search & Filtering ────────────────────────────────
+
+router.get("/search/pickup-requests", searchPickupRequests);
+router.get("/search/recycling-requests", searchRecyclingRequests);
+router.get("/search/complaints", searchComplaints);
+router.get("/search/collectors", searchCollectors);
+router.get("/search/partners", searchPartners);
 
 export default router;

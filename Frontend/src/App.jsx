@@ -17,10 +17,12 @@ import ResidentGuidelinesPage from './pages/resident/ResidentGuidelinesPage'
 import RewardsPage from './pages/resident/RewardsPage'
 import ResidentCalendarPage from './pages/resident/ResidentCalendarPage'
 import PickupRequestPage from './pages/resident/PickupRequestPage'
+import ResidentHistoryPage from './pages/resident/ResidentHistoryPage'
 
 // Collector
 import CollectorDashboard from './pages/collector/CollectorDashboard'
 import CollectorProfilePage from './pages/collector/CollectorProfilePage'
+import CollectorHistoryPage from './pages/collector/CollectorHistoryPage'
 
 // Partner
 import PartnerDashboard from './pages/partner/PartnerDashboard'
@@ -35,6 +37,7 @@ import AdminComplaintsPage from './pages/admin/AdminComplaintsPage'
 import AdminGuidelinesPage from './pages/admin/AdminGuidelinesPage'
 import AdminSchedulesPage from './pages/admin/AdminSchedulesPage'
 import AdminPickupAssignmentsPage from './pages/admin/AdminPickupAssignmentsPage'
+import AdminSearchPage from './pages/admin/AdminSearchPage'
 
 
 function App() {
@@ -117,6 +120,12 @@ function App() {
               path="/resident/calendar"
               element={<ResidentCalendarPage />}
             />
+
+            {/* Feature 14 — Collection History */}
+            <Route
+              path="/resident/history"
+              element={<ResidentHistoryPage />}
+            />
           </Route>
 
           {/* Collector Routes */}
@@ -129,6 +138,12 @@ function App() {
             <Route
               path="/collector/profile"
               element={<CollectorProfilePage />}
+            />
+
+            {/* Feature 14 — Collection History */}
+            <Route
+              path="/collector/history"
+              element={<CollectorHistoryPage />}
             />
           </Route>
 
@@ -186,6 +201,12 @@ function App() {
             <Route
               path="/admin/pickup-assignments"
               element={<AdminPickupAssignmentsPage />}
+            />
+
+            {/* Feature 19 — Advanced Search & Filtering */}
+            <Route
+              path="/admin/search"
+              element={<AdminSearchPage />}
             />
           </Route>
 

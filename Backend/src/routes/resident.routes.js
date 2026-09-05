@@ -17,6 +17,8 @@ import {
   cancelPickupRequest,
 } from "../controllers/pickupRequest.controller.js";
 
+import { getResidentHistory } from "../controllers/history.controller.js";
+
 import {
   protect,
   restrictTo,
@@ -77,5 +79,11 @@ router.patch(
   "/pickup-requests/:id/cancel",
   cancelPickupRequest
 );
+
+// ─── Collection History (Feature 14) ─────────────────────────────────────────
+
+// Unified pickup + recycling collection timeline for the resident.
+// GET /api/residents/history
+router.get("/history", getResidentHistory);
 
 export default router;

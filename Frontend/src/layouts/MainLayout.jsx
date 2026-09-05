@@ -15,6 +15,8 @@ import {
   MessageSquareWarning,
   BookOpen,
   Truck,
+  History,
+  Search,
 } from 'lucide-react'
 
 
@@ -65,6 +67,11 @@ const MainLayout = () => {
             icon: Recycle,
           },
           {
+            name: 'History',
+            path: '/resident/history',
+            icon: History,
+          },
+          {
             name: 'Complaints',
             path: '/resident/complaints',
             icon: MessageSquareWarning,
@@ -84,6 +91,11 @@ const MainLayout = () => {
             name: 'Dashboard',
             path: '/collector/dashboard',
             icon: LayoutDashboard,
+          },
+          {
+            name: 'History',
+            path: '/collector/history',
+            icon: History,
           },
           {
             name: 'Profile',
@@ -136,6 +148,11 @@ const MainLayout = () => {
             name: 'Pickup Assignments',
             path: '/admin/pickup-assignments',
             icon: Truck,
+          },
+          {
+            name: 'Search & Filter',
+            path: '/admin/search',
+            icon: Search,
           },
         ]
 

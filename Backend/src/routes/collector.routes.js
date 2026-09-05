@@ -8,6 +8,8 @@ import {
   updatePickupRequestStatus,
 } from "../controllers/collector.controller.js";
 
+import { getCollectorHistory } from "../controllers/history.controller.js";
+
 import {
   protect,
   restrictTo,
@@ -72,6 +74,17 @@ router.get(
 router.patch(
   "/pickup-requests/:id/status",
   updatePickupRequestStatus
+);
+
+
+
+// Feature 14:
+// Collector views their completed work history (collected / failed).
+// GET /api/collectors/history
+
+router.get(
+  "/history",
+  getCollectorHistory
 );
 
 
