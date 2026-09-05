@@ -42,7 +42,6 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
         recyclingQuantityRows,
         materialBreakdown,
         monthlyTrend,
-        pickupQuantityRows,
         recentUsers,
       ] = await Promise.all([
     User.aggregate([
