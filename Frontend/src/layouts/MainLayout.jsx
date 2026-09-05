@@ -17,7 +17,8 @@ import {
   MessageSquareWarning,
   BookOpen,
   Gift,
-  CalendarDays
+  CalendarDays,
+  Trash2
 } from 'lucide-react'
 
 const MainLayout = () => {
@@ -43,6 +44,7 @@ const MainLayout = () => {
           { name: 'Recycling', path: '/resident/recycling', icon: Recycle },
           { name: 'Rewards', path: '/resident/rewards', icon: Gift },
           { name: 'Complaints', path: '/resident/complaints', icon: MessageSquareWarning },
+          { name: 'Public Bin Reports', path: '/resident/overflow-reports', icon: Trash2 },
           { name: 'Calendar', path: '/resident/calendar', icon: CalendarDays },
           { name: 'Guidelines', path: '/resident/guidelines', icon: BookOpen },
         ]
@@ -64,6 +66,7 @@ const MainLayout = () => {
           { name: 'Service Areas', path: '/admin/service-areas', icon: Map },
           { name: 'Schedules', path: '/admin/schedules', icon: CalendarDays },
           { name: 'Complaints', path: '/admin/complaints', icon: MessageSquareWarning },
+          { name: 'Public Bin Reports', path: '/admin/overflow-reports', icon: Trash2 },
           { name: 'Guidelines', path: '/admin/guidelines', icon: BookOpen },
         ]
       default:
