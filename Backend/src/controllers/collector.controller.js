@@ -92,6 +92,52 @@ updates[field]=req.body[field];
 
 
 
+// Employee IDs must be unique across collectors.
+//
+// Checked case-insensitively, so "EMP-001" and "emp-001" cannot both exist —
+// the unique index on the model is case-sensitive and would let those through.
+// An empty value is always allowed: it means "no ID assigned yet", and any
+// number of collectors may be in that state.
+if(updates.employeeId!==undefined){
+
+updates.employeeId=String(updates.employeeId).trim();
+
+
+if(updates.employeeId){
+
+const escapedId=updates.employeeId.replace(
+/[.*+?^${}()|[\]\\]/g,
+"\\$&"
+);
+
+
+const duplicate=
+await CollectorProfile.findOne({
+user:{$ne:req.user._id},
+employeeId:new RegExp(`^${escapedId}$`,"i")
+})
+.populate("user","name")
+.select("user employeeId");
+
+
+if(duplicate){
+
+return sendError(
+res,
+409,
+`Employee ID "${updates.employeeId}" is already assigned to ${
+duplicate.user?.name || "another collector"
+}`
+);
+
+}
+
+}
+
+}
+
+
+
 const userUpdates={};
 
 

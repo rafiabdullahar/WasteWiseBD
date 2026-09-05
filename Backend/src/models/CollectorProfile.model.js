@@ -62,6 +62,25 @@ const collectorProfileSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// An employee ID identifies a collector on rosters and paperwork, so no two
+// collectors may share one.
+//
+// It cannot be a plain `unique: true`, because the field is optional and
+// defaults to "": every profile starts life with an empty employee ID, and a
+// plain unique index would reject the second such profile ever created. The
+// partial filter restricts the constraint to profiles that actually carry an
+// ID, leaving any number of blank ones legal.
+//
+// This is the database-level guarantee. The readable, case-insensitive check
+// lives in collector.controller.js — this index is what holds under a race.
+collectorProfileSchema.index(
+  { employeeId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { employeeId: { $gt: "" } },
+  }
+);
+
 const CollectorProfile = mongoose.model(
   "CollectorProfile",
   collectorProfileSchema
