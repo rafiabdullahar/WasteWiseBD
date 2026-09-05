@@ -3,13 +3,10 @@ import WastePickupRequest, {
   PICKUP_STATUSES,
 } from "../models/WastePickupRequest.model.js";
 import ResidentProfile from "../models/ResidentProfile.model.js";
-import CollectorProfile from "../models/CollectorProfile.model.js";
 import ServiceArea from "../models/ServiceArea.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import { validateCreatePickupRequest } from "../validations/pickupRequest.validation.js";
-
-const ACTIVE_TASK_STATUSES = ["assigned", "on_the_way"];
 
 const populatePickupRequest = (query) =>
   query
@@ -24,96 +21,6 @@ const populatePickupRequest = (query) =>
       },
     })
     .populate("assignedBy", "name email");
-
-// Finds the best available collector for a service area.
-//
-// Assignment priority:
-// 1. Collector must cover the requested service area.
-// 2. Collector must be available.
-// 3. Collector's user account must be an active collector account.
-// 4. Collector with the fewest active tasks gets priority.
-// 5. If active workload is equal, collector with fewer completed
-//    tasks gets priority.
-// 6. If everything is equal, collector ID is used as a deterministic
-//    tie-breaker so MongoDB ordering does not make the assignment
-//    appear random.
-const findBestAvailableCollector = async (serviceAreaId) => {
-  const collectors = await CollectorProfile.find({
-    serviceAreas: serviceAreaId,
-    isAvailable: true,
-  }).populate({
-    path: "user",
-    match: {
-      role: "collector",
-      isActive: true,
-    },
-    select: "name email phone role isActive",
-  });
-
-  const eligibleCollectors = collectors.filter(
-    (collector) => collector.user
-  );
-
-  if (eligibleCollectors.length === 0) {
-    return null;
-  }
-
-  const collectorIds = eligibleCollectors.map(
-    (collector) => collector._id
-  );
-
-  // Count currently active requests for every eligible collector.
-  const workloadRows = await WastePickupRequest.aggregate([
-    {
-      $match: {
-        assignedCollector: { $in: collectorIds },
-        status: { $in: ACTIVE_TASK_STATUSES },
-      },
-    },
-    {
-      $group: {
-        _id: "$assignedCollector",
-        activeTaskCount: { $sum: 1 },
-      },
-    },
-  ]);
-
-  const workloadMap = new Map(
-    workloadRows.map((row) => [
-      row._id.toString(),
-      row.activeTaskCount,
-    ])
-  );
-
-  // Sort according to the assignment priority.
-  eligibleCollectors.sort((a, b) => {
-    const workloadA =
-      workloadMap.get(a._id.toString()) || 0;
-
-    const workloadB =
-      workloadMap.get(b._id.toString()) || 0;
-
-    // Priority 1: lowest active workload.
-    if (workloadA !== workloadB) {
-      return workloadA - workloadB;
-    }
-
-    // Priority 2: fewer completed tasks.
-    const completedA = a.totalCompleted || 0;
-    const completedB = b.totalCompleted || 0;
-
-    if (completedA !== completedB) {
-      return completedA - completedB;
-    }
-
-    // Priority 3: deterministic tie-breaker.
-    return a._id.toString().localeCompare(
-      b._id.toString()
-    );
-  });
-
-  return eligibleCollectors[0];
-};
 
 // @route  POST /api/residents/pickup-requests
 // @access resident
@@ -175,12 +82,9 @@ export const createPickupRequest = asyncHandler(async (req, res) => {
     );
   }
 
-  // Automatically select the best eligible collector.
-  const bestCollector = await findBestAvailableCollector(
-    serviceArea._id
-  );
-
-  const assignedAt = bestCollector ? new Date() : null;
+  // Collectors are assigned by an administrator only — either individually
+  // (Feature 10) or in bulk by dispatching a collection route (Feature 5).
+  // A new request therefore always starts unassigned.
 
   const requestData = {
     resident: req.user._id,
@@ -205,28 +109,14 @@ export const createPickupRequest = asyncHandler(async (req, res) => {
     preferredTimeSlot: preferredTimeSlot || "morning",
     notes: notes?.trim() || "",
 
-    status: bestCollector ? "assigned" : "pending",
+    status: "pending",
 
-    assignedCollector: bestCollector?._id || null,
+    assignedCollector: null,
 
-    assignedAt,
+    assignedAt: null,
 
-    assignmentMethod: bestCollector ? "automatic" : null,
+    assignmentMethod: null,
   };
-
-  // Store assignment history whenever a collector is automatically assigned.
-  if (bestCollector) {
-    requestData.assignmentHistory = [
-      {
-        collector: bestCollector._id,
-        assignedBy: null,
-        method: "automatic",
-        assignedAt,
-        note:
-          "Automatically assigned by service area, availability, and workload priority",
-      },
-    ];
-  }
 
   const createdRequest = await WastePickupRequest.create(
     requestData
@@ -239,9 +129,7 @@ export const createPickupRequest = asyncHandler(async (req, res) => {
   return sendSuccess(
     res,
     201,
-    bestCollector
-      ? "Pickup request submitted and collector assigned"
-      : "Pickup request submitted and is waiting for assignment",
+    "Pickup request submitted and is waiting for assignment",
     { request }
   );
 });
