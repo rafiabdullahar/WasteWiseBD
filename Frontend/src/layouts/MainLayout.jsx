@@ -1,23 +1,21 @@
 import { useState } from 'react'
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import NotificationPanel from '../components/NotificationPanel'
-import { 
-  Leaf, 
-  LogOut, 
-  Menu, 
-  X, 
-  Home, 
-  User, 
-  Recycle, 
-  Map, 
-  Users, 
+import {
+  Leaf,
+  LogOut,
+  Menu,
+  X,
+  Home,
+  User,
+  Recycle,
+  Map,
+  Users,
   Settings,
   LayoutDashboard,
   MessageSquareWarning,
   BookOpen,
-  Gift,
-  CalendarDays
+  Truck,
 } from 'lucide-react'
 
 const MainLayout = () => {
@@ -38,13 +36,36 @@ const MainLayout = () => {
     switch (user.role) {
       case 'resident':
         return [
-          { name: 'Dashboard', path: '/resident/dashboard', icon: LayoutDashboard },
-          { name: 'Profile', path: '/resident/profile', icon: User },
-          { name: 'Recycling', path: '/resident/recycling', icon: Recycle },
-          { name: 'Rewards', path: '/resident/rewards', icon: Gift },
-          { name: 'Complaints', path: '/resident/complaints', icon: MessageSquareWarning },
-          { name: 'Calendar', path: '/resident/calendar', icon: CalendarDays },
-          { name: 'Guidelines', path: '/resident/guidelines', icon: BookOpen },
+          {
+            name: 'Dashboard',
+            path: '/resident/dashboard',
+            icon: LayoutDashboard,
+          },
+          {
+            name: 'Profile',
+            path: '/resident/profile',
+            icon: User,
+          },
+          {
+            name: 'Waste Pickup',
+            path: '/resident/pickups',
+            icon: Truck,
+          },
+          {
+            name: 'Recycling',
+            path: '/resident/recycling',
+            icon: Recycle,
+          },
+          {
+            name: 'Complaints',
+            path: '/resident/complaints',
+            icon: MessageSquareWarning,
+          },
+          {
+            name: 'Guidelines',
+            path: '/resident/guidelines',
+            icon: BookOpen,
+          },
         ]
       case 'collector':
         return [
@@ -62,9 +83,6 @@ const MainLayout = () => {
           { name: 'Users', path: '/admin/users', icon: Users },
           { name: 'Partners', path: '/admin/partners', icon: Recycle },
           { name: 'Service Areas', path: '/admin/service-areas', icon: Map },
-          { name: 'Schedules', path: '/admin/schedules', icon: CalendarDays },
-          { name: 'Complaints', path: '/admin/complaints', icon: MessageSquareWarning },
-          { name: 'Guidelines', path: '/admin/guidelines', icon: BookOpen },
         ]
       default:
         return []
@@ -125,12 +143,9 @@ const MainLayout = () => {
         </div>
 
         <div className="p-4 border-t border-gray-800">
-          <div className="flex items-center justify-between mb-3 px-1">
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-white truncate">{user?.name}</p>
-              <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
-            </div>
-            <NotificationPanel />
+          <div className="mb-4 px-4">
+            <p className="text-sm font-medium text-white truncate">{user?.name}</p>
+            <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
           </div>
           <button
             onClick={handleLogout}

@@ -8,6 +8,7 @@ import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
 
+
 // Resident
 import ResidentDashboard from './pages/resident/ResidentDashboard'
 import ResidentProfilePage from './pages/resident/ResidentProfilePage'
@@ -16,7 +17,7 @@ import ResidentComplaintPage from './pages/resident/ResidentComplaintPage'
 import ResidentGuidelinesPage from './pages/resident/ResidentGuidelinesPage'
 import RewardsPage from './pages/resident/RewardsPage'
 import ResidentCalendarPage from './pages/resident/ResidentCalendarPage'
-
+import PickupRequestPage from './pages/resident/PickupRequestPage'
 // Collector
 import CollectorDashboard from './pages/collector/CollectorDashboard'
 import CollectorProfilePage from './pages/collector/CollectorProfilePage'
@@ -64,16 +65,32 @@ function App() {
       <Route element={<PrivateRoute />}>
         <Route element={<MainLayout />}>
           
-          {/* Resident Routes */}
-          <Route element={<RoleRoute roles={['resident']} />}>
-            <Route path="/resident/dashboard" element={<ResidentDashboard />} />
-            <Route path="/resident/profile" element={<ResidentProfilePage />} />
-            <Route path="/resident/recycling" element={<RecyclingRequestPage />} />
+      {/* Resident Routes */}
+      <Route element={<RoleRoute roles={['resident']} />}>
+        <Route
+          path="/resident/dashboard"
+          element={<ResidentDashboard />}
+        />
+
+        <Route
+          path="/resident/profile"
+          element={<ResidentProfilePage />}
+        />
+
+        <Route
+          path="/resident/pickups"
+          element={<PickupRequestPage />}
+        />
+
+        <Route
+          path="/resident/recycling"
+          element={<RecyclingRequestPage />}
+        />
             <Route path="/resident/rewards" element={<RewardsPage />} />
             <Route path="/resident/complaints" element={<ResidentComplaintPage />} />
             <Route path="/resident/guidelines" element={<ResidentGuidelinesPage />} />
             <Route path="/resident/calendar" element={<ResidentCalendarPage />} />
-          </Route>
+      </Route>
 
           {/* Collector Routes */}
           <Route element={<RoleRoute roles={['collector']} />}>
