@@ -2,23 +2,25 @@ import { useState } from 'react'
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import NotificationPanel from '../components/NotificationPanel'
-import { 
-  Leaf, 
-  LogOut, 
-  Menu, 
-  X, 
-  Home, 
-  User, 
-  Recycle, 
-  Map, 
-  Users, 
-  Settings,
+
+import {
+  Leaf,
+  LogOut,
+  Menu,
+  X,
+  User,
+  Recycle,
+  Map,
+  Users,
   LayoutDashboard,
   MessageSquareWarning,
   BookOpen,
   Gift,
   CalendarDays,
-  Trash2
+  Trash2,
+  Truck,
+  History,
+  Search,
 } from 'lucide-react'
 
 const MainLayout = () => {
@@ -32,7 +34,6 @@ const MainLayout = () => {
     navigate('/login')
   }
 
-  // Define navigation links based on user role
   const getNavLinks = () => {
     if (!user) return []
 
@@ -41,23 +42,29 @@ const MainLayout = () => {
         return [
           { name: 'Dashboard', path: '/resident/dashboard', icon: LayoutDashboard },
           { name: 'Profile', path: '/resident/profile', icon: User },
+          { name: 'Waste Pickup', path: '/resident/pickups', icon: Truck },
           { name: 'Recycling', path: '/resident/recycling', icon: Recycle },
+          { name: 'History', path: '/resident/history', icon: History },
           { name: 'Rewards', path: '/resident/rewards', icon: Gift },
           { name: 'Complaints', path: '/resident/complaints', icon: MessageSquareWarning },
           { name: 'Public Bin Reports', path: '/resident/overflow-reports', icon: Trash2 },
           { name: 'Calendar', path: '/resident/calendar', icon: CalendarDays },
           { name: 'Guidelines', path: '/resident/guidelines', icon: BookOpen },
         ]
+
       case 'collector':
         return [
           { name: 'Dashboard', path: '/collector/dashboard', icon: LayoutDashboard },
+          { name: 'History', path: '/collector/history', icon: History },
           { name: 'Profile', path: '/collector/profile', icon: User },
         ]
+
       case 'partner':
         return [
           { name: 'Dashboard', path: '/partner/dashboard', icon: LayoutDashboard },
           { name: 'Profile', path: '/partner/profile', icon: User },
         ]
+
       case 'admin':
         return [
           { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
@@ -65,10 +72,13 @@ const MainLayout = () => {
           { name: 'Partners', path: '/admin/partners', icon: Recycle },
           { name: 'Service Areas', path: '/admin/service-areas', icon: Map },
           { name: 'Schedules', path: '/admin/schedules', icon: CalendarDays },
+          { name: 'Pickup Assignments', path: '/admin/pickup-assignments', icon: Truck },
+          { name: 'Search & Filter', path: '/admin/search', icon: Search },
           { name: 'Complaints', path: '/admin/complaints', icon: MessageSquareWarning },
           { name: 'Public Bin Reports', path: '/admin/overflow-reports', icon: Trash2 },
           { name: 'Guidelines', path: '/admin/guidelines', icon: BookOpen },
         ]
+
       default:
         return []
     }
@@ -86,7 +96,7 @@ const MainLayout = () => {
           </div>
           <span className="text-xl font-bold text-gradient">WasteWise</span>
         </Link>
-        <button 
+        <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           className="text-gray-400 hover:text-white"
         >
@@ -94,15 +104,18 @@ const MainLayout = () => {
         </button>
       </header>
 
-      {/* Sidebar Navigation */}
-      <aside className={`
-        fixed md:sticky top-0 md:top-0 left-0 h-screen w-64 bg-gray-900 border-r border-gray-800 
-        flex flex-col z-40 transition-transform duration-300 ease-in-out
+      {/* Sidebar */}
+      <aside
+        className={`
+        fixed md:sticky top-0 left-0 h-screen w-64 
+        bg-gray-900 border-r border-gray-800 
+        flex flex-col z-40 transition-transform duration-300
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-      `}>
+        `}
+      >
         <div className="p-6 hidden md:block">
           <Link to="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-brand-600 rounded-xl flex items-center justify-center shadow-lg shadow-brand-900/50">
+            <div className="w-10 h-10 bg-brand-600 rounded-xl flex items-center justify-center">
               <Leaf className="w-5 h-5 text-white" strokeWidth={2.5} />
             </div>
             <span className="text-2xl font-bold text-gradient">WasteWise</span>
@@ -127,17 +140,28 @@ const MainLayout = () => {
           })}
         </div>
 
+        {/* User section */}
         <div className="p-4 border-t border-gray-800">
           <div className="flex items-center justify-between mb-3 px-1">
             <div className="min-w-0">
-              <p className="text-sm font-medium text-white truncate">{user?.name}</p>
-              <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
+              <p className="text-sm font-medium text-white truncate">
+                {user?.name}
+              </p>
+              <p className="text-xs text-gray-500 capitalize">
+                {user?.role}
+              </p>
             </div>
             <NotificationPanel />
           </div>
+
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-red-400 hover:bg-red-950/30 transition-all duration-200 font-medium"
+            className="
+            w-full flex items-center gap-3 
+            px-4 py-3 rounded-xl 
+            text-gray-400 hover:text-red-400 
+            hover:bg-red-950/30 transition-all
+            "
           >
             <LogOut className="w-5 h-5" />
             Sign Out
@@ -145,16 +169,26 @@ const MainLayout = () => {
         </div>
       </aside>
 
-      {/* Overlay for mobile menu */}
+      {/* Mobile overlay */}
       {isMobileMenuOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-30 md:hidden backdrop-blur-sm"
+        <div
+          className="
+          fixed inset-0 bg-black/50 
+          z-30 md:hidden backdrop-blur-sm
+          "
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
-      {/* Main Content Area */}
-      <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full animate-fade-in overflow-x-hidden">
+      {/* Main content */}
+      <main
+        className="
+        flex-1 p-4 md:p-8 
+        max-w-7xl mx-auto 
+        w-full animate-fade-in 
+        overflow-x-hidden
+        "
+      >
         <Outlet />
       </main>
     </div>

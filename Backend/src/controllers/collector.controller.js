@@ -1,101 +1,474 @@
 import CollectorProfile from "../models/CollectorProfile.model.js";
+import WastePickupRequest from "../models/WastePickupRequest.model.js";
 import User from "../models/User.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 
-const VALID_VEHICLE_TYPES = ["truck", "van", "rickshaw", "motorcycle", "other"];
 
-// @route  GET /api/collectors/profile
-// @access collector
-export const getProfile = asyncHandler(async (req, res) => {
-  const profile = await CollectorProfile.findOne({ user: req.user._id })
-    .populate("user", "name email phone")
-    .populate("serviceAreas", "name city");
+const VALID_VEHICLE_TYPES = [
+  "truck",
+  "van",
+  "rickshaw",
+  "motorcycle",
+  "other",
+];
 
-  if (!profile) {
-    return sendError(res, 404, "Collector profile not found");
-  }
 
-  return sendSuccess(res, 200, "Profile fetched successfully", { profile });
-});
+// GET PROFILE
+export const getProfile = asyncHandler(async (req,res)=>{
 
-// @route  PUT /api/collectors/profile
-// @access collector
-export const updateProfile = asyncHandler(async (req, res) => {
-  const allowedFields = [
-    "vehicleType",
-    "vehicleNumber",
-    "workSchedule",
-    "profilePicture",
-    "isAvailable",
-    "serviceAreas",
-    "employeeId",
-  ];
+  const profile =
+    await CollectorProfile.findOne({
+      user:req.user._id
+    })
+    .populate("user","name email phone")
+    .populate("serviceAreas","name city");
 
-  // Validate vehicleType if provided
-  if (
-    req.body.vehicleType &&
-    !VALID_VEHICLE_TYPES.includes(req.body.vehicleType)
-  ) {
+
+  if(!profile){
     return sendError(
       res,
-      400,
-      `Vehicle type must be one of: ${VALID_VEHICLE_TYPES.join(", ")}`
+      404,
+      "Collector profile not found"
     );
   }
 
-  const updates = {};
-  allowedFields.forEach((field) => {
-    if (req.body[field] !== undefined) updates[field] = req.body[field];
-  });
 
-  // Allow updating User-level name/phone in the same call.
-  const userUpdates = {};
-  if (req.body.name) userUpdates.name = req.body.name.trim();
-  if (req.body.phone) userUpdates.phone = req.body.phone.trim();
-  if (Object.keys(userUpdates).length > 0) {
-    await User.findByIdAndUpdate(req.user._id, userUpdates);
-  }
+  return sendSuccess(
+    res,
+    200,
+    "Profile fetched successfully",
+    {
+      profile
+    }
+  );
 
-  const profile = await CollectorProfile.findOneAndUpdate(
-    { user: req.user._id },
-    { $set: updates },
-    { new: true, runValidators: true }
-  )
-    .populate("user", "name email phone")
-    .populate("serviceAreas", "name city");
-
-  if (!profile) {
-    return sendError(res, 404, "Profile not found");
-  }
-
-  return sendSuccess(res, 200, "Profile updated successfully", { profile });
 });
 
-// @route  GET /api/collectors/performance
-// @access collector
-export const getPerformance = asyncHandler(async (req, res) => {
-  const profile = await CollectorProfile.findOne({
-    user: req.user._id,
-  }).select("totalCompleted totalFailed averageRating");
 
-  if (!profile) {
-    return sendError(res, 404, "Profile not found");
-  }
 
-  const total = profile.totalCompleted + profile.totalFailed;
-  const successRate =
-    total > 0
-      ? ((profile.totalCompleted / total) * 100).toFixed(1)
-      : "0.0";
+// UPDATE PROFILE
+export const updateProfile = asyncHandler(async(req,res)=>{
 
-  return sendSuccess(res, 200, "Performance data fetched", {
-    performance: {
-      totalCompleted: profile.totalCompleted,
-      totalFailed: profile.totalFailed,
-      total,
-      successRate: `${successRate}%`,
-      averageRating: profile.averageRating,
-    },
-  });
+
+const allowedFields=[
+"vehicleType",
+"vehicleNumber",
+"workSchedule",
+"profilePicture",
+"isAvailable",
+"serviceAreas",
+"employeeId"
+];
+
+
+if(
+req.body.vehicleType &&
+!VALID_VEHICLE_TYPES.includes(req.body.vehicleType)
+){
+
+return sendError(
+res,
+400,
+"Invalid vehicle type"
+);
+
+}
+
+
+
+const updates={};
+
+
+allowedFields.forEach(field=>{
+
+if(req.body[field]!==undefined){
+
+updates[field]=req.body[field];
+
+}
+
+});
+
+
+
+const userUpdates={};
+
+
+if(req.body.name)
+userUpdates.name=req.body.name.trim();
+
+
+if(req.body.phone)
+userUpdates.phone=req.body.phone.trim();
+
+
+
+if(Object.keys(userUpdates).length){
+
+await User.findByIdAndUpdate(
+req.user._id,
+userUpdates
+);
+
+}
+
+
+
+const profile =
+await CollectorProfile.findOneAndUpdate(
+{
+user:req.user._id
+},
+{
+$set:updates
+},
+{
+new:true,
+runValidators:true
+}
+)
+.populate("user","name email phone")
+.populate("serviceAreas","name city");
+
+
+
+if(!profile){
+
+return sendError(
+res,
+404,
+"Profile not found"
+);
+
+}
+
+
+
+return sendSuccess(
+res,
+200,
+"Profile updated successfully",
+{
+profile
+}
+);
+
+
+});
+
+
+
+
+// PERFORMANCE
+export const getPerformance =
+asyncHandler(async(req,res)=>{
+
+
+const profile =
+await CollectorProfile.findOne({
+user:req.user._id
+})
+.select(
+"totalCompleted totalFailed averageRating"
+);
+
+
+
+if(!profile){
+
+return sendError(
+res,
+404,
+"Profile not found"
+);
+
+}
+
+
+
+const total =
+profile.totalCompleted+
+profile.totalFailed;
+
+
+
+const rate =
+total>0
+?
+((profile.totalCompleted/total)*100).toFixed(1)
+:
+"0.0";
+
+
+
+return sendSuccess(
+res,
+200,
+"Performance fetched",
+{
+
+performance:{
+
+totalCompleted:profile.totalCompleted,
+
+totalFailed:profile.totalFailed,
+
+successRate:`${rate}%`,
+
+averageRating:profile.averageRating
+
+}
+
+}
+);
+
+
+});
+
+
+
+
+// GET ASSIGNED TASKS
+export const getAssignedPickupRequests =
+asyncHandler(async(req,res)=>{
+
+
+const collectorProfile =
+await CollectorProfile.findOne({
+user:req.user._id
+});
+
+
+
+if(!collectorProfile){
+
+return sendError(
+res,
+404,
+"Collector profile not found"
+);
+
+}
+
+
+
+const requests =
+await WastePickupRequest.find({
+
+assignedCollector:
+collectorProfile._id,
+
+
+status:{
+$in:[
+"assigned",
+"on_the_way",
+"collected",
+"failed"
+]
+}
+
+})
+
+.populate(
+"resident",
+"name email phone"
+)
+
+.populate(
+"serviceArea",
+"name city district"
+)
+
+.sort({
+preferredDate:1,
+createdAt:1
+});
+
+
+
+return sendSuccess(
+res,
+200,
+"Assigned pickup requests fetched",
+{
+requests
+}
+);
+
+
+});
+
+
+
+
+
+// UPDATE TASK STATUS
+export const updatePickupRequestStatus =
+asyncHandler(async(req,res)=>{
+
+
+const {id}=req.params;
+
+const {status}=req.body;
+
+
+
+const allowed=[
+"on_the_way",
+"collected",
+"failed"
+];
+
+
+
+if(!allowed.includes(status)){
+
+return sendError(
+res,
+400,
+"Invalid status"
+);
+
+}
+
+
+
+const collectorProfile =
+await CollectorProfile.findOne({
+user:req.user._id
+});
+
+
+
+if(!collectorProfile){
+
+return sendError(
+res,
+404,
+"Collector profile not found"
+);
+
+}
+
+
+
+const request =
+await WastePickupRequest.findOne({
+
+_id:id,
+
+assignedCollector:
+collectorProfile._id
+
+});
+
+
+
+if(!request){
+
+return sendError(
+res,
+404,
+"Task not assigned to this collector"
+);
+
+}
+
+
+
+
+// transitions
+
+if(
+status==="on_the_way" &&
+request.status!=="assigned"
+){
+
+return sendError(
+res,
+400,
+"Task must be assigned first"
+);
+
+}
+
+
+
+if(
+(status==="collected" ||
+status==="failed")
+&&
+request.status!=="on_the_way"
+){
+
+return sendError(
+res,
+400,
+"Task must be on the way first"
+);
+
+}
+
+
+
+// prevent duplicate counting
+
+if(
+request.status==="collected" ||
+request.status==="failed"
+){
+
+return sendError(
+res,
+400,
+"Task already completed"
+);
+
+}
+
+
+
+request.status=status;
+
+
+
+if(status==="collected"){
+
+request.completedAt=new Date();
+
+collectorProfile.totalCompleted =
+(collectorProfile.totalCompleted||0)+1;
+
+}
+
+
+
+if(status==="failed"){
+
+collectorProfile.totalFailed =
+(collectorProfile.totalFailed||0)+1;
+
+}
+
+
+
+await request.save();
+
+await collectorProfile.save();
+
+
+
+return sendSuccess(
+res,
+200,
+"Pickup status updated successfully",
+{
+request
+}
+);
+
+
+
 });
