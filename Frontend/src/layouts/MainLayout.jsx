@@ -21,6 +21,7 @@ import {
   Truck,
   History,
   Search,
+  BarChart3,
 } from 'lucide-react'
 
 const MainLayout = () => {
@@ -73,6 +74,7 @@ const MainLayout = () => {
           { name: 'Service Areas', path: '/admin/service-areas', icon: Map },
           { name: 'Schedules', path: '/admin/schedules', icon: CalendarDays },
           { name: 'Pickup Assignments', path: '/admin/pickup-assignments', icon: Truck },
+          { name: 'Analytics', path: '/admin/analytics', icon: BarChart3 },
           { name: 'Search & Filter', path: '/admin/search', icon: Search },
           { name: 'Complaints', path: '/admin/complaints', icon: MessageSquareWarning },
           { name: 'Public Bin Reports', path: '/admin/overflow-reports', icon: Trash2 },

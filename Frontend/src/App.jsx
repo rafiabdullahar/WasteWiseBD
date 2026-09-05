@@ -40,6 +40,7 @@ import AdminSchedulesPage from './pages/admin/AdminSchedulesPage'
 import AdminOverflowReportsPage from './pages/admin/AdminOverflowReportsPage'
 import AdminPickupAssignmentsPage from './pages/admin/AdminPickupAssignmentsPage'
 import AdminSearchPage from './pages/admin/AdminSearchPage'
+import AdminAnalyticsPage from './pages/admin/AdminAnalyticsPage'
 
 function App() {
   return (
@@ -218,6 +219,12 @@ function App() {
             <Route
               path="/admin/search"
               element={<AdminSearchPage />}
+            />
+
+            {/* Feature 16 — Area-wise Waste Analytics */}
+            <Route
+              path="/admin/analytics"
+              element={<AdminAnalyticsPage />}
             />
           </Route>
 
