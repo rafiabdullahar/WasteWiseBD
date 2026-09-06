@@ -3,10 +3,12 @@ import WastePickupRequest, {
   PICKUP_STATUSES,
 } from "../models/WastePickupRequest.model.js";
 import ResidentProfile from "../models/ResidentProfile.model.js";
+import CollectorProfile from "../models/CollectorProfile.model.js";
 import ServiceArea from "../models/ServiceArea.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
-import { validateCreatePickupRequest } from "../validations/pickupRequest.validation.js";
+import { validateCreatePickupRequest, validateRating } from "../validations/pickupRequest.validation.js";
+
 
 const populatePickupRequest = (query) =>
   query
@@ -248,4 +250,56 @@ export const cancelPickupRequest = asyncHandler(async (req, res) => {
       request: populatedRequest,
     }
   );
+});
+
+// @route  PATCH /api/residents/pickup-requests/:id/rate
+// @access resident
+export const rateCollector = asyncHandler(async (req, res) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return sendError(res, 400, "Invalid pickup request ID");
+  }
+
+  const { isValid, errors } = validateRating(req.body);
+  if (!isValid) return sendError(res, 400, "Validation failed", errors);
+
+  const request = await WastePickupRequest.findOne({
+    _id: req.params.id,
+    resident: req.user._id,
+  });
+
+  if (!request) {
+    return sendError(res, 404, "Pickup request not found");
+  }
+
+  if (request.status !== "collected") {
+    return sendError(res, 400, "Only completed pickups can be rated");
+  }
+
+  if (request.rating) {
+    return sendError(res, 400, "This pickup has already been rated");
+  }
+
+  request.rating = Number(req.body.rating);
+  request.ratingComment = req.body.ratingComment?.trim() || "";
+  await request.save();
+
+  const ratedRequests = await WastePickupRequest.find({
+    assignedCollector: request.assignedCollector,
+    rating: { $ne: null },
+  }).select("rating");
+
+  const averageRating = ratedRequests.length
+    ? Number(
+        (
+          ratedRequests.reduce((sum, r) => sum + r.rating, 0) /
+          ratedRequests.length
+        ).toFixed(2)
+      )
+    : 0;
+
+  await CollectorProfile.findByIdAndUpdate(request.assignedCollector, {
+    averageRating,
+  });
+
+  return sendSuccess(res, 200, "Rating submitted successfully", { request });
 });

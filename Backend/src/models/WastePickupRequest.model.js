@@ -179,6 +179,18 @@ const wastePickupRequestSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    rating: {
+      type: Number,
+      min: 1,
+      max: 5,
+      default: null,
+    },
+    ratingComment: {
+      type: String,
+      trim: true,
+      maxlength: 300,
+      default: "",
+    },    
     failureReason: {
       type: String,
       trim: true,

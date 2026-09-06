@@ -7,6 +7,7 @@ import {
   MapPin,
   Package,
   Plus,
+  Star,
   Trash2,
   Truck,
   UserCheck,
@@ -377,6 +378,21 @@ const PickupRequestPage = () => {
       )
     } finally {
       setCancellingId('')
+    }
+  }
+
+    const handleRate = async (requestId, rating) => {
+    try {
+      await api.patch(
+        `/residents/pickup-requests/${requestId}/rate`,
+        { rating }
+      )
+      toast.success('Rating submitted')
+      await fetchRequests()
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || 'Failed to submit rating'
+      )
     }
   }
 
@@ -1050,6 +1066,38 @@ const PickupRequestPage = () => {
                             : ''}
                         </p>
                       )}
+
+                      {request.status === 'collected' && (
+                        <div className="mt-3">
+                          {request.rating ? (
+                            <div className="flex lg:justify-end items-center gap-1">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <Star
+                                  key={star}
+                                  className={`w-4 h-4 ${
+                                    star <= request.rating
+                                      ? 'text-yellow-400 fill-yellow-400'
+                                      : 'text-gray-700'
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="flex lg:justify-end items-center gap-1">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <button
+                                  key={star}
+                                  type="button"
+                                  onClick={() => handleRate(request._id, star)}
+                                  className="text-gray-700 hover:text-yellow-400"
+                                >
+                                  <Star className="w-5 h-5" />
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}                      
 
                       {canCancel && (
                         <button

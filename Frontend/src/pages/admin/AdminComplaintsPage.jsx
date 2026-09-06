@@ -2,9 +2,10 @@ import { useState, useEffect, useMemo } from 'react'
 import api from '../../services/api'
 import toast from 'react-hot-toast'
 import {
-  AlertTriangle, MapPin, CalendarDays, Clock, Paperclip,
+  AlertTriangle, MapPin, CalendarDays, Clock,
   History, MessageSquare, ChevronDown, ChevronUp,
-  Package, AlertOctagon, Trash2, HelpCircle,
+  Package, AlertOctagon, HelpCircle,
+  User, Users, Star, Truck,
 } from 'lucide-react'
 
 const STATUSES = ['Open', 'Investigating', 'Resolved', 'Closed']
@@ -34,7 +35,6 @@ const CATEGORY_META = {
   'Missed Pickup': { icon: Clock, badge: 'badge-blue' },
   'Partial Collection': { icon: Package, badge: 'badge-blue' },
   'Wrong Waste Handling': { icon: AlertOctagon, badge: 'badge-red' },
-  'Bin Overflow': { icon: Trash2, badge: 'badge-yellow' },
   'Other': { icon: HelpCircle, badge: 'badge-gray' },
 }
 
@@ -45,6 +45,11 @@ const AdminComplaintsPage = () => {
   const [pendingStatus, setPendingStatus] = useState({})
   const [noteDrafts, setNoteDrafts] = useState({})
   const [expandedHistory, setExpandedHistory] = useState({})
+  const [suggestingFor, setSuggestingFor] = useState(null)
+  const [suggestions, setSuggestions] = useState({})
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false)
+  const [assigningId, setAssigningId] = useState(null)
+  const [faultDrafts, setFaultDrafts] = useState({})
 
   const fetchComplaints = async () => {
     try {
@@ -61,21 +66,12 @@ const AdminComplaintsPage = () => {
     fetchComplaints()
   }, [])
 
-  const handleStatusChange = async (id) => {
-    const status = pendingStatus[id]
-    if (!status) return
-
-    const note = (noteDrafts[id] || '').trim()
-
-    if (status === 'Resolved' && !note) {
-      toast.error('Please add resolution notes before marking as Resolved')
-      return
-    }
-
+  const submitStatusChange = async (id, status, note = '', atFault = '') => {
     try {
       const { data } = await api.patch(`/complaints/${id}/status`, {
         status,
         resolutionNotes: note,
+        atFault,
       })
       if (data.success) {
         toast.success('Status updated')
@@ -89,6 +85,68 @@ const AdminComplaintsPage = () => {
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to update status')
+    }
+  }
+
+  const handleStatusClick = (id, status) => {
+    if (status === 'Resolved') {
+      setPendingStatus((prev) => ({ ...prev, [id]: status }))
+      return
+    }
+    submitStatusChange(id, status)
+  }
+
+  const handleStatusChange = (id) => {
+    const status = pendingStatus[id]
+    if (!status) return
+
+    const note = (noteDrafts[id] || '').trim()
+    const fault = faultDrafts[id]
+
+    if (!note) {
+      toast.error('Please add resolution notes before marking as Resolved')
+      return
+    }
+    
+    submitStatusChange(id, status, note, fault)
+  }
+
+  const handleShowSuggestions = async (id) => {
+    if (suggestingFor === id) {
+      setSuggestingFor(null)
+      return
+    }
+
+    setSuggestingFor(id)
+
+    if (suggestions[id]) return
+
+    setLoadingSuggestions(true)
+    try {
+      const { data } = await api.get(`/complaints/${id}/suggested-collectors`)
+      if (data.success) {
+        setSuggestions((prev) => ({ ...prev, [id]: data.data.collectors }))
+      }
+    } catch {
+      toast.error('Could not load suggested collectors')
+    } finally {
+      setLoadingSuggestions(false)
+    }
+  }
+
+  const handleAssign = async (complaintId, collectorId) => {
+    setAssigningId(collectorId)
+    try {
+      const { data } = await api.patch(`/complaints/${complaintId}/assign`, { collectorId })
+      if (data.success) {
+        toast.success('Collector assigned')
+        setComplaints((prev) => prev.map((c) => (c._id === complaintId ? data.data.complaint : c)))
+        setSuggestingFor(null)
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to assign collector')
+    } finally {
+      setAssigningId(null)
     }
   }
 
@@ -143,6 +201,7 @@ const AdminComplaintsPage = () => {
             const isChangingStatus = currentSelection !== c.status
             const meta = CATEGORY_META[c.category] || CATEGORY_META['Other']
             const CategoryIcon = meta.icon
+            const collectorName = c.assignedCollector?.user?.name
 
             return (
               <div
@@ -185,17 +244,81 @@ const AdminComplaintsPage = () => {
                   </span>
                 </div>
 
-                {c.evidenceUrl && (
-                  <a
-                    href={`http://localhost:5001${c.evidenceUrl}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-brand-500 hover:underline mb-3"
-                  >
-                    <Paperclip className="w-3 h-3" />
-                    View attached photo
-                  </a>
-                )}
+      
+
+                <div className="mb-3">
+                  {collectorName ? (
+                    <div className="flex items-center gap-2 p-2.5 rounded-xl bg-brand-600/5 border border-brand-900/40">
+                      <User className="w-3.5 h-3.5 text-brand-500 shrink-0" />
+                      <span className="text-xs text-gray-300">
+                        <span className="text-gray-500">Assigned to</span> {collectorName}
+                        {c.assignedCollector?.employeeId && (
+                          <span className="text-gray-600"> · #{c.assignedCollector.employeeId}</span>
+                        )}
+                      </span>
+                    </div>
+                  ) : (
+                    <div>
+                      <button
+                        onClick={() => handleShowSuggestions(c._id)}
+                        className="text-xs text-gray-400 hover:text-white flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-gray-800 border border-gray-800"
+                      >
+                        <Users className="w-3.5 h-3.5" />
+                        Suggest collectors
+                        {suggestingFor === c._id ? (
+                          <ChevronUp className="w-3 h-3" />
+                        ) : (
+                          <ChevronDown className="w-3 h-3" />
+                        )}
+                      </button>
+
+                      {suggestingFor === c._id && (
+                        <div className="mt-2 space-y-1.5 animate-fade-in">
+                          {loadingSuggestions ? (
+                            <p className="text-xs text-gray-500 px-2">Loading...</p>
+                          ) : !suggestions[c._id] || suggestions[c._id].length === 0 ? (
+                            <p className="text-xs text-gray-500 px-2">
+                              No collectors cover this area yet.
+                            </p>
+                          ) : (
+                            suggestions[c._id].map((col) => (
+                              <button
+                                key={col._id}
+                                onClick={() => handleAssign(c._id, col._id)}
+                                disabled={assigningId === col._id}
+                                className="w-full flex items-center justify-between gap-3 p-2.5 rounded-xl bg-gray-800 border border-gray-700 hover:border-brand-600 transition-colors text-left disabled:opacity-50"
+                              >
+                                <div className="min-w-0">
+                                  <p className="text-xs text-white truncate">
+                                    {col.user?.name}
+                                    {col.employeeId && (
+                                      <span className="text-gray-500"> · #{col.employeeId}</span>
+                                    )}
+                                  </p>
+                                  <p className="text-[11px] text-gray-500 flex items-center gap-2 mt-0.5">
+                                    <span className="flex items-center gap-0.5">
+                                      <Truck className="w-2.5 h-2.5" />
+                                      {col.vehicleType}
+                                    </span>
+                                    {col.averageRating > 0 && (
+                                      <span className="flex items-center gap-0.5">
+                                        <Star className="w-2.5 h-2.5" />
+                                        {col.averageRating.toFixed(1)}
+                                      </span>
+                                    )}
+                                  </p>
+                                </div>
+                                <span className="text-[11px] text-brand-500 shrink-0">
+                                  {assigningId === col._id ? 'Assigning...' : 'Assign'}
+                                </span>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
 
                 <div className="pt-3 border-t border-gray-800 space-y-3">
                   <div>
@@ -204,9 +327,7 @@ const AdminComplaintsPage = () => {
                       {STATUSES.map((s) => (
                         <button
                           key={s}
-                          onClick={() =>
-                            setPendingStatus((prev) => ({ ...prev, [c._id]: s }))
-                          }
+                          onClick={() => handleStatusClick(c._id, s)}
                           className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
                             currentSelection === s
                               ? 'bg-brand-600 text-white border-brand-600'
@@ -226,14 +347,22 @@ const AdminComplaintsPage = () => {
                         onChange={(e) =>
                           setNoteDrafts((prev) => ({ ...prev, [c._id]: e.target.value }))
                         }
-                        placeholder={
-                          currentSelection === 'Resolved'
-                            ? 'Resolution notes (required)'
-                            : 'Add a note (optional)'
-                        }
+                        placeholder="Resolution notes (required)"
                         rows={2}
                         className="input-field text-sm"
                       />
+                      <select
+                        value={faultDrafts[c._id] || ''}
+                        onChange={(e) =>
+                          setFaultDrafts((prev) => ({ ...prev, [c._id]: e.target.value }))
+                        }
+                        className="input-field text-sm"
+                      >
+                        <option value="">Was the complaint applicable against this particular collector?</option>
+                        <option value="valid">Valid — collector was at fault</option>
+                        <option value="invalid">Invalid — not the collector's fault</option>
+                        <option value="inconclusive">Inconclusive</option>
+                      </select>
                       <button
                         onClick={() => handleStatusChange(c._id)}
                         className="btn-primary text-xs px-4 py-1.5"

@@ -7,6 +7,7 @@ import WastePickupRequest, {
 } from "../models/WastePickupRequest.model.js";
 import RecyclingPartner from "../models/RecyclingPartner.model.js";
 import RecyclingRequest from "../models/RecyclingRequest.model.js";
+import Complaint from "../models/Complaint.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 
@@ -1010,3 +1011,90 @@ export const assignPickupRequest =
       }
     );
   });
+
+// ============================================================================
+// FEATURE 17 — COLLECTOR PERFORMANCE MONITORING
+// ============================================================================
+
+// @route  GET /api/admin/collectors/performance
+// @access admin
+export const getCollectorsPerformance = asyncHandler(async (req, res) => {
+  const collectors = await CollectorProfile.find()
+    .populate("user", "name email isActive")
+    .select(
+      "user employeeId totalCompleted totalFailed averageRating isAvailable"
+    );
+
+  const performanceReport = await Promise.all(
+    collectors.map(async (profile) => {
+      const completedRequests = await WastePickupRequest.find({
+        assignedCollector: profile._id,
+        status: "collected",
+        completedAt: { $ne: null },
+      }).select("preferredDate completedAt");
+
+      let onTimeCount = 0;
+
+      completedRequests.forEach((request) => {
+        // Simplest definition: "on time" means completed on the same
+        // calendar day as the resident's preferred date. This ignores
+        // preferredTimeSlot (morning/afternoon/evening) since the schema
+        // doesn't define exact hour boundaries for those slots — a
+        // stricter version could be added later if needed.
+        const preferredDay = new Date(request.preferredDate).toDateString();
+        const completedDay = new Date(request.completedAt).toDateString();
+
+        if (preferredDay === completedDay) {
+          onTimeCount += 1;
+        }
+      });
+
+      const totalCompletedInWindow = completedRequests.length;
+      const punctualityRate =
+        totalCompletedInWindow > 0
+          ? Number(((onTimeCount / totalCompletedInWindow) * 100).toFixed(1))
+          : null;
+
+      const totalJobs = profile.totalCompleted + profile.totalFailed;
+      const successRate =
+        totalJobs > 0
+          ? Number(((profile.totalCompleted / totalJobs) * 100).toFixed(1))
+          : null;
+
+      // Counts every complaint ever linked to this collector, regardless of
+      // outcome (Open/Investigating/Resolved/Closed) — this measures how
+      // often a collector gets complained about, not whether they were
+      // proven at fault. See project notes for why: fault-tracking would
+      // need a new field on Complaint, which is out of scope here.
+      const complaintCount = await Complaint.countDocuments({
+        assignedCollector: profile._id,
+        atFault: "valid",
+      });
+
+      const complaintRate =
+        totalJobs > 0
+          ? Number(((complaintCount / totalJobs) * 100).toFixed(1))
+          : null;
+
+      return {
+        collectorId: profile._id,
+        name: profile.user?.name,
+        email: profile.user?.email,
+        isActive: profile.user?.isActive,
+        employeeId: profile.employeeId,
+        isAvailable: profile.isAvailable,
+        totalCompleted: profile.totalCompleted,
+        totalFailed: profile.totalFailed,
+        successRate,
+        punctualityRate,
+        complaintCount,
+        complaintRate,
+        averageRating: profile.averageRating,
+      };
+    })
+  );
+
+  return sendSuccess(res, 200, "Collector performance report fetched", {
+    collectors: performanceReport,
+  });
+});

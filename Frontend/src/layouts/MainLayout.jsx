@@ -19,6 +19,7 @@ import {
   CalendarDays,
   Trash2,
   Truck,
+  Star,
   History,
   Search,
   BarChart3,
@@ -82,6 +83,7 @@ const MainLayout = () => {
           { name: 'Complaints', path: '/admin/complaints', icon: MessageSquareWarning },
           { name: 'Public Bin Reports', path: '/admin/overflow-reports', icon: Trash2 },
           { name: 'Guidelines', path: '/admin/guidelines', icon: BookOpen },
+          { name: 'Collector Performance', path: '/admin/collector-performance', icon: Star },
         ]
 
       default:

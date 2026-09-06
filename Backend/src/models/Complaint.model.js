@@ -29,12 +29,12 @@ const complaintSchema = new mongoose.Schema(
     },
     pickupRequest: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "PickupRequest",
+      ref: "WastePickupRequest",
       default: null,
     },
     addressId: {
       type: mongoose.Schema.Types.ObjectId,
-      required: [true, "Address is required"],
+      default: null,
     },
     serviceArea: {
       type: mongoose.Schema.Types.ObjectId,
@@ -52,7 +52,6 @@ const complaintSchema = new mongoose.Schema(
         "Missed Pickup",
         "Partial Collection",
         "Wrong Waste Handling",
-        "Bin Overflow",
         "Other",
       ],
       required: [true, "Category is required"],
@@ -66,10 +65,6 @@ const complaintSchema = new mongoose.Schema(
       type: Date,
       required: [true, "Missed date is required"],
     },
-    evidenceUrl: {
-      type: String,
-      default: "",
-    },
     status: {
       type: String,
       enum: ["Open", "Investigating", "Resolved", "Closed"],
@@ -80,13 +75,18 @@ const complaintSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+    atFault: {
+      type: String,
+      enum: ["valid", "invalid", "inconclusive"],
+      default: "valid",
+    },
     statusHistory: {
       type: [statusHistorySchema],
       default: [],
     },
     assignedCollector: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "CollectorProfile",
       default: null,
     },
   },

@@ -15,6 +15,7 @@ import {
   getMyPickupRequests,
   getMyPickupRequestById,
   cancelPickupRequest,
+  rateCollector,
 } from "../controllers/pickupRequest.controller.js";
 
 import { getResidentHistory } from "../controllers/history.controller.js";
@@ -78,6 +79,14 @@ router.get(
 router.patch(
   "/pickup-requests/:id/cancel",
   cancelPickupRequest
+);
+
+
+// Rate the collector for a completed pickup
+// PATCH /api/residents/pickup-requests/:id/rate
+router.patch(
+  "/pickup-requests/:id/rate",
+  rateCollector
 );
 
 // ─── Collection History (Feature 14) ─────────────────────────────────────────
