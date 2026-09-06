@@ -29,12 +29,12 @@ const complaintSchema = new mongoose.Schema(
     },
     pickupRequest: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "PickupRequest",
+      ref: "WastePickupRequest",
       default: null,
     },
     addressId: {
       type: mongoose.Schema.Types.ObjectId,
-      required: [true, "Address is required"],
+      default: null,
     },
     serviceArea: {
       type: mongoose.Schema.Types.ObjectId,
@@ -86,7 +86,7 @@ const complaintSchema = new mongoose.Schema(
     },
     assignedCollector: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "CollectorProfile",
       default: null,
     },
   },

@@ -6,9 +6,15 @@ const VALID_CATEGORIES = [
   "Other",
 ];
 
+const PICKUP_LINKED_CATEGORIES = [
+  "Missed Pickup",
+  "Partial Collection",
+  "Wrong Waste Handling",
+];
+
 export const validateComplaintInput = (data) => {
   const errors = {};
-  const { category, description, area, missedDate } = data;
+  const { category, description, missedDate } = data;
 
   if (!category || !VALID_CATEGORIES.includes(category)) {
     errors.category = `category must be one of: ${VALID_CATEGORIES.join(", ")}`;
@@ -18,13 +24,19 @@ export const validateComplaintInput = (data) => {
     errors.description = "Please describe the issue when selecting 'Other'";
   }
 
-  if (!data.addressId) {
-    errors.addressId = "Please select an address";
+  if (PICKUP_LINKED_CATEGORIES.includes(category)) {
+    if (!data.pickupRequest) {
+      errors.pickupRequest = "Please select the pickup this complaint is about";
+    }
+  } else {
+    if (!data.addressId) {
+      errors.addressId = "Please select an address";
+    }
   }
 
   if (!missedDate) {
     errors.missedDate = "Missed date is required";
-  }else if (new Date(missedDate) > new Date()) {
+  } else if (new Date(missedDate) > new Date()) {
     errors.missedDate = "Missed date cannot be in the future";
   }
 

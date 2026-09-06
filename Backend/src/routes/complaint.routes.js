@@ -6,6 +6,8 @@ import {
   getMyComplaints,
   getAllComplaints,
   updateComplaintStatus,
+  getSuggestedCollectors,
+  assignCollector,
 } from "../controllers/complaint.controller.js";
 import { protect, restrictTo } from "../middleware/auth.middleware.js";
 import { upload } from "../middleware/upload.middleware.js";
@@ -18,5 +20,7 @@ router.delete("/:id", protect, restrictTo("resident"), deleteComplaint);
 router.get("/my", protect, restrictTo("resident"), getMyComplaints);
 router.get("/", protect, restrictTo("admin"), getAllComplaints);
 router.patch("/:id/status", protect, restrictTo("admin"), updateComplaintStatus);
+router.get("/:id/suggested-collectors", protect, restrictTo("admin"), getSuggestedCollectors);
+router.patch("/:id/assign", protect, restrictTo("admin"), assignCollector);
 
 export default router;
