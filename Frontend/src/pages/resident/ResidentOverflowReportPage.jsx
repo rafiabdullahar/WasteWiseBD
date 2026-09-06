@@ -1,5 +1,3 @@
-// Frontend/src/pages/resident/ResidentOverflowReportPage.jsx
-
 import { useState, useEffect, useRef } from 'react'
 import api from '../../services/api'
 import toast from 'react-hot-toast'
@@ -212,7 +210,7 @@ const ResidentOverflowReportPage = () => {
         </p>
       </div>
 
-      <div className="card-glass border border-brand-900/40">
+      <div className="card-glass border border-emerald-400 shadow-[0_0_25px_2px_rgba(52,211,153,0.4)]">
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Photo dropzone — the primary action */}
           <div
@@ -228,7 +226,8 @@ const ResidentOverflowReportPage = () => {
                 ? 'border-brand-500 bg-brand-500/5'
                 : 'border-gray-700 hover:border-gray-600 bg-gray-800/40'
             }`}
-          >
+       
+                  >
             <input
               ref={fileInputRef}
               type="file"

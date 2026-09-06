@@ -1,9 +1,84 @@
 import { useState, useEffect } from 'react'
 import api from '../../services/api'
 import toast from 'react-hot-toast'
-import { Pencil, Trash2, Plus, X } from 'lucide-react'
+import {
+  Pencil,
+  Trash2,
+  Plus,
+  X,
+  Cpu,
+  Wine,
+  AlertTriangle,
+  Wrench,
+  Leaf,
+  ShoppingBag,
+  FileText,
+} from 'lucide-react'
 
 const CATEGORIES = ["Organic", "Plastic", "Paper", "Glass", "Metal", "Electronic", "Hazardous"]
+
+
+const CATEGORY_STYLES = {
+  Organic: {
+    icon: Leaf,
+    iconBg: 'bg-green-500/15',
+    iconColor: 'text-green-400',
+    badge: 'bg-green-950/40 text-green-400 border-green-900/50',
+    accentBorder: 'border-l-green-500',
+  },
+  Plastic: {
+    icon: ShoppingBag,
+    iconBg: 'bg-blue-500/15',
+    iconColor: 'text-blue-400',
+    badge: 'bg-blue-950/40 text-blue-400 border-blue-900/50',
+    accentBorder: 'border-l-blue-500',
+  },
+  Paper: {
+    icon: FileText,
+    iconBg: 'bg-yellow-500/15',
+    iconColor: 'text-yellow-400',
+    badge: 'bg-yellow-950/40 text-yellow-400 border-yellow-900/50',
+    accentBorder: 'border-l-yellow-500',
+  },
+  Glass: {
+    icon: Wine,
+    iconBg: 'bg-cyan-500/15',
+    iconColor: 'text-cyan-400',
+    badge: 'bg-cyan-950/40 text-cyan-400 border-cyan-900/50',
+    accentBorder: 'border-l-cyan-500',
+  },
+  Metal: {
+    icon: Wrench,
+    iconBg: 'bg-slate-500/15',
+    iconColor: 'text-slate-300',
+    badge: 'bg-slate-800/60 text-slate-300 border-slate-600/50',
+    accentBorder: 'border-l-slate-400',
+  },
+  Electronic: {
+    icon: Cpu,
+    iconBg: 'bg-amber-500/15',
+    iconColor: 'text-amber-400',
+    badge: 'bg-amber-950/40 text-amber-400 border-amber-900/50',
+    accentBorder: 'border-l-amber-500',
+  },
+  Hazardous: {
+    icon: AlertTriangle,
+    iconBg: 'bg-red-500/15',
+    iconColor: 'text-red-400',
+    badge: 'bg-red-950/40 text-red-400 border-red-900/50',
+    accentBorder: 'border-l-red-500',
+  },
+}
+
+const DEFAULT_STYLE = {
+  icon: Leaf,
+  iconBg: 'bg-brand-600/20',
+  iconColor: 'text-brand-500',
+  badge: 'bg-brand-950/40 text-brand-400 border-brand-900/50',
+  accentBorder: 'border-l-brand-500',
+}
+
+const getCategoryStyle = (category) => CATEGORY_STYLES[category] || DEFAULT_STYLE
 
 const emptyForm = {
   wasteCategory: '',
@@ -105,6 +180,9 @@ const AdminGuidelinesPage = () => {
     }
   }
 
+  const formCategoryStyle = getCategoryStyle(form.wasteCategory)
+  const FormCategoryIcon = formCategoryStyle.icon
+
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div className="flex items-center justify-between">
@@ -119,11 +197,19 @@ const AdminGuidelinesPage = () => {
       </div>
 
       {showForm && (
-        <form onSubmit={handleSave} className="card-glass space-y-4">
+        <form
+          onSubmit={handleSave}
+          className={`card-glass space-y-4 border-l-4 transition-colors duration-300 ${formCategoryStyle.accentBorder}`}
+        >
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-white">
-              {editingId ? 'Edit Guideline' : 'New Guideline'}
-            </h2>
+            <div className="flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors duration-300 ${formCategoryStyle.iconBg}`}>
+                <FormCategoryIcon className={`w-4.5 h-4.5 ${formCategoryStyle.iconColor}`} />
+              </div>
+              <h2 className="text-lg font-semibold text-white">
+                {editingId ? 'Edit Guideline' : 'New Guideline'}
+              </h2>
+            </div>
             <button type="button" onClick={closeForm} className="text-gray-500 hover:text-white">
               <X className="w-5 h-5" />
             </button>
@@ -212,22 +298,41 @@ const AdminGuidelinesPage = () => {
         <p className="text-gray-500">Loading...</p>
       ) : (
         <div className="grid gap-3">
-          {guidelines.map((g) => (
-            <div key={g._id} className="card-glass flex items-center justify-between gap-4">
-              <div>
-                <p className="text-white font-semibold">{g.title}</p>
-                <p className="text-xs text-gray-500">{g.wasteCategory} · {g.isRecyclable ? 'Recyclable' : 'Not recyclable'}</p>
+          {guidelines.map((g, i) => {
+            const style = getCategoryStyle(g.wasteCategory)
+            const CategoryIcon = style.icon
+
+            return (
+              <div
+                key={g._id}
+                style={{ animationDelay: `${i * 50}ms` }}
+                className={`card-glass flex items-center justify-between gap-4 border-l-4 ${style.accentBorder} animate-fade-in transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg`}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${style.iconBg}`}>
+                    <CategoryIcon className={`w-5 h-5 ${style.iconColor}`} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-white font-semibold truncate">{g.title}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs text-gray-500">{g.wasteCategory}</span>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${style.badge}`}>
+                        {g.isRecyclable ? 'Recyclable' : 'Not recyclable'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button onClick={() => openEditForm(g)} className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg">
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => handleDelete(g._id)} className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-950/30 rounded-lg">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => openEditForm(g)} className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg">
-                  <Pencil className="w-4 h-4" />
-                </button>
-                <button onClick={() => handleDelete(g._id)} className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-950/30 rounded-lg">
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

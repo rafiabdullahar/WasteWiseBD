@@ -59,7 +59,7 @@ const STATUS_DOT = {
 
 const CATEGORY_META = {
   'Missed Pickup': { icon: Clock, badge: 'badge-blue' },
-  'Partial Collection': { icon: Package, badge: 'badge-blue' },
+  'Partial Collection': { icon: Package, badge: 'inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-900/60 text-purple-300 border border-purple-700/50' },
   'Wrong Waste Handling': { icon: AlertOctagon, badge: 'badge-red' },
   'Other': { icon: HelpCircle, badge: 'badge-gray' },
 }
@@ -220,7 +220,7 @@ const ResidentComplaintPage = () => {
         <p className="text-gray-400">Report a missed pickup and track its resolution.</p>
       </div>
 
-      <div className="card-glass border border-brand-900/40">
+      <div className="card-glass border border-emerald-400 shadow-[0_0_25px_2px_rgba(52,211,153,0.4)]">
         <div className="flex items-center gap-3 pb-4 border-b border-gray-800">
           <div className="w-10 h-10 bg-brand-500/10 rounded-xl flex items-center justify-center shrink-0">
             <AlertTriangle className="w-5 h-5 text-brand-500" />

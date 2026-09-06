@@ -33,9 +33,25 @@ const STATUS_DOT = {
 
 const CATEGORY_META = {
   'Missed Pickup': { icon: Clock, badge: 'badge-blue' },
-  'Partial Collection': { icon: Package, badge: 'badge-blue' },
+  'Partial Collection': { icon: Package, badge: 'inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-900/60 text-purple-300 border border-purple-700/50' },
   'Wrong Waste Handling': { icon: AlertOctagon, badge: 'badge-red' },
   'Other': { icon: HelpCircle, badge: 'badge-gray' },
+}
+
+const STAT_CARD_STYLES = {
+  All: 'border-gray-700 hover:border-gray-600',
+  Open: 'border-yellow-900/50 hover:border-yellow-600/60',
+  Investigating: 'border-blue-900/50 hover:border-blue-600/60',
+  Resolved: 'border-green-900/50 hover:border-green-600/60',
+  Closed: 'border-gray-700 hover:border-gray-600',
+}
+
+const STAT_NUMBER_COLOR = {
+  All: 'text-white',
+  Open: 'text-yellow-400',
+  Investigating: 'text-blue-400',
+  Resolved: 'text-green-400',
+  Closed: 'text-gray-400',
 }
 
 const AdminComplaintsPage = () => {
@@ -177,11 +193,11 @@ const AdminComplaintsPage = () => {
           <button
             key={s}
             onClick={() => setActiveFilter(s)}
-            className={`stat-card text-left transition-all ${
-              activeFilter === s ? 'border-brand-600 bg-brand-600/5' : ''
+            className={`stat-card text-left transition-all ${STAT_CARD_STYLES[s]} ${
+              activeFilter === s ? 'bg-white/[0.04] ring-1 ring-white/10' : ''
             }`}
           >
-            <span className="text-2xl font-bold text-white">{counts[s] || 0}</span>
+            <span className={`text-2xl font-bold ${STAT_NUMBER_COLOR[s]}`}>{counts[s] || 0}</span>
             <span className="text-xs text-gray-500 font-medium">{s}</span>
           </button>
         ))}
