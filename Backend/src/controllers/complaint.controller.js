@@ -60,7 +60,6 @@ export const createComplaint = asyncHandler(async (req, res) => {
     description: req.body.description || "",
     area,
     missedDate: req.body.missedDate || null,
-    evidenceUrl: req.file ? `/uploads/complaints/${req.file.filename}` : "",
   });
 
   return sendSuccess(res, 201, "Complaint submitted", { complaint });
@@ -211,7 +210,7 @@ export const updateComplaintStatus = asyncHandler(async (req, res) => {
   if (req.body.atFault) {
     complaint.atFault = req.body.atFault;
   }
-  
+
   complaint.statusHistory.push({
     status: req.body.status,
     note: req.body.resolutionNotes || req.body.note || "",

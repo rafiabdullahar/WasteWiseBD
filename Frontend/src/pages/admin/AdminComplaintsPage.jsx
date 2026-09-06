@@ -2,9 +2,9 @@ import { useState, useEffect, useMemo } from 'react'
 import api from '../../services/api'
 import toast from 'react-hot-toast'
 import {
-  AlertTriangle, MapPin, CalendarDays, Clock, Paperclip,
+  AlertTriangle, MapPin, CalendarDays, Clock,
   History, MessageSquare, ChevronDown, ChevronUp,
-  Package, AlertOctagon, Trash2, HelpCircle,
+  Package, AlertOctagon, HelpCircle,
   User, Users, Star, Truck,
 } from 'lucide-react'
 
@@ -35,7 +35,6 @@ const CATEGORY_META = {
   'Missed Pickup': { icon: Clock, badge: 'badge-blue' },
   'Partial Collection': { icon: Package, badge: 'badge-blue' },
   'Wrong Waste Handling': { icon: AlertOctagon, badge: 'badge-red' },
-  'Bin Overflow': { icon: Trash2, badge: 'badge-yellow' },
   'Other': { icon: HelpCircle, badge: 'badge-gray' },
 }
 
@@ -245,17 +244,7 @@ const AdminComplaintsPage = () => {
                   </span>
                 </div>
 
-                {c.evidenceUrl && (
-                  <a
-                    href={`http://localhost:5001${c.evidenceUrl}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-brand-500 hover:underline mb-3"
-                  >
-                    <Paperclip className="w-3 h-3" />
-                    View attached photo
-                  </a>
-                )}
+      
 
                 <div className="mb-3">
                   {collectorName ? (
@@ -369,7 +358,7 @@ const AdminComplaintsPage = () => {
                         }
                         className="input-field text-sm"
                       >
-                        <option value="">Was the complaint applicable against this particular collecter?</option>
+                        <option value="">Was the complaint applicable against this particular collector?</option>
                         <option value="valid">Valid — collector was at fault</option>
                         <option value="invalid">Invalid — not the collector's fault</option>
                         <option value="inconclusive">Inconclusive</option>

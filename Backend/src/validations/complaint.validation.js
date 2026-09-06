@@ -2,7 +2,6 @@ const VALID_CATEGORIES = [
   "Missed Pickup",
   "Partial Collection",
   "Wrong Waste Handling",
-  "Bin Overflow",
   "Other",
 ];
 
