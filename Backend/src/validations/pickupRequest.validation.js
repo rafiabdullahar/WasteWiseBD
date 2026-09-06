@@ -85,3 +85,14 @@ export const validateCreatePickupRequest = (body) => {
     errors,
   };
 };
+
+export const validateRating = (data) => {
+  const errors = {};
+  const rating = Number(data.rating);
+
+  if (!data.rating || !Number.isInteger(rating) || rating < 1 || rating > 5) {
+    errors.rating = "Rating must be a whole number between 1 and 5";
+  }
+
+  return { isValid: Object.keys(errors).length === 0, errors };
+};
