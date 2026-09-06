@@ -8,20 +8,6 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import { validateCreateRecyclingRequest } from "../validations/recycling.validation.js";
 
-// ─── Helper: find the best available verified partner for a service area ──────
-const findAvailablePartner = async (serviceAreaId, requiredMaterials) => {
-  const materialCategories = requiredMaterials.map((m) => m.category);
-
-  // Find verified partners in the service area that accept all requested materials.
-  const partner = await RecyclingPartner.findOne({
-    isVerified: true,
-    serviceAreas: serviceAreaId,
-    acceptedMaterials: { $all: materialCategories },
-  }).populate("user", "_id");
-
-  return partner || null;
-};
-
 // ─── Resident endpoints ───────────────────────────────────────────────────────
 
 // @route  POST /api/recycling
@@ -48,33 +34,22 @@ export const createRecyclingRequest = asyncHandler(async (req, res) => {
     return sendError(res, 404, "Resident profile not found");
   }
 
-  // Try to auto-assign a partner.
-  const partner = await findAvailablePartner(serviceArea, materials);
-
+  // Requests are created into a shared, unclaimed pool. Any verified partner
+  // that serves this service area (and accepts at least one of the requested
+  // materials) can see and claim it from their dashboard — see
+  // getAvailableRequests / claimRequest below. We deliberately do NOT
+  // auto-assign a single partner here.
   const request = await RecyclingRequest.create({
     resident: req.user._id,
     residentProfile: residentProfile._id,
-    partner: partner?._id || undefined,
     pickupAddress,
     serviceArea,
     materials,
     preferredDate,
     preferredTimeSlot: preferredTimeSlot || "morning",
     notes: notes || "",
-    status: partner ? "assigned" : "pending",
+    status: "pending",
   });
-
-  // Notify the partner if one was auto-assigned.
-  if (partner) {
-    await Notification.create({
-      recipient: partner.user._id,
-      title: "New Recycling Request",
-      message: `A new recycling request has been assigned to you for ${new Date(preferredDate).toLocaleDateString()}.`,
-      type: "recycling_accepted",
-      relatedDocument: request._id,
-      relatedModel: "RecyclingRequest",
-    });
-  }
 
   return sendSuccess(res, 201, "Recycling request submitted successfully", {
     request,

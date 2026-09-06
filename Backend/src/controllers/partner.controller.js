@@ -11,6 +11,10 @@ import { creditRecyclingReward } from "../utils/rewards.js";
 
 // @route  GET /api/partners/requests
 // @access partner
+//
+// The partner's OWN requests — ones they have already claimed (accepted /
+// in_progress / completed / rejected). The shared, unclaimed pool is served
+// separately by getAvailableRequests.
 export const getOwnRequests = asyncHandler(async (req, res) => {
   const partner = await RecyclingPartner.findOne({ user: req.user._id });
   if (!partner) return sendError(res, 404, "Partner profile not found");
@@ -24,6 +28,7 @@ export const getOwnRequests = asyncHandler(async (req, res) => {
   const [requests, total] = await Promise.all([
     RecyclingRequest.find(filter)
       .populate("resident", "name email")
+      .populate("serviceArea", "name city")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(Number(limit)),
@@ -36,12 +41,147 @@ export const getOwnRequests = asyncHandler(async (req, res) => {
   });
 });
 
+// @route  GET /api/partners/requests/available
+// @access partner (verified)
+//
+// The shared claim pool: pending, unclaimed recycling requests in a service
+// area this partner serves, where the partner accepts at least one of the
+// requested materials. Any eligible partner sees the same pool; the first to
+// claim a request removes it from everyone else's pool (see claimRequest).
+export const getAvailableRequests = asyncHandler(async (req, res) => {
+  const partner = await RecyclingPartner.findOne({ user: req.user._id });
+  if (!partner) return sendError(res, 404, "Partner profile not found");
+
+  if (!partner.isVerified) {
+    return sendError(
+      res,
+      403,
+      "Your account is pending verification by the administrator"
+    );
+  }
+
+  // A partner with no service areas or no accepted materials has an empty pool.
+  if (
+    !partner.serviceAreas?.length ||
+    !partner.acceptedMaterials?.length
+  ) {
+    return sendSuccess(res, 200, "Available requests fetched", {
+      requests: [],
+    });
+  }
+
+  const { page = 1, limit = 20 } = req.query;
+  const skip = (Number(page) - 1) * Number(limit);
+
+  const filter = {
+    status: "pending",
+    partner: { $in: [null, undefined] },
+    serviceArea: { $in: partner.serviceAreas },
+    "materials.category": { $in: partner.acceptedMaterials },
+  };
+
+  const [requests, total] = await Promise.all([
+    RecyclingRequest.find(filter)
+      .populate("resident", "name email")
+      .populate("serviceArea", "name city")
+      .sort({ preferredDate: 1, createdAt: 1 })
+      .skip(skip)
+      .limit(Number(limit)),
+    RecyclingRequest.countDocuments(filter),
+  ]);
+
+  return sendSuccess(res, 200, "Available requests fetched", {
+    requests,
+    pagination: { total, page: Number(page), limit: Number(limit) },
+  });
+});
+
+// @route  PATCH /api/partners/requests/:id/claim
+// @access partner (verified)
+//
+// Atomically claim a request from the shared pool. The findOneAndUpdate filter
+// requires the request to still be pending and unclaimed, so if two partners
+// click "Accept" at the same time, only the first write succeeds — the second
+// matches no document and gets a 409. This is what guarantees a request can
+// belong to exactly one partner.
+export const claimRequest = asyncHandler(async (req, res) => {
+  const partner = await RecyclingPartner.findOne({
+    user: req.user._id,
+  }).populate("user", "_id");
+
+  if (!partner) return sendError(res, 404, "Partner profile not found");
+  if (!partner.isVerified)
+    return sendError(res, 403, "Account not yet verified");
+
+  const request = await RecyclingRequest.findById(req.params.id);
+  if (!request) return sendError(res, 404, "Request not found");
+
+  // Guard: partner must serve this area and accept at least one material.
+  const servesArea = partner.serviceAreas.some(
+    (areaId) => areaId.toString() === request.serviceArea.toString()
+  );
+  const acceptsMaterial = request.materials.some((m) =>
+    partner.acceptedMaterials.includes(m.category)
+  );
+
+  if (!servesArea || !acceptsMaterial) {
+    return sendError(
+      res,
+      403,
+      "This request is outside your service areas or accepted materials"
+    );
+  }
+
+  // Atomic claim — only succeeds while the request is still pending & unclaimed.
+  const claimed = await RecyclingRequest.findOneAndUpdate(
+    {
+      _id: request._id,
+      status: "pending",
+      partner: { $in: [null, undefined] },
+    },
+    {
+      $set: {
+        partner: partner._id,
+        status: "accepted",
+        acceptedAt: new Date(),
+      },
+    },
+    { new: true }
+  );
+
+  if (!claimed) {
+    return sendError(
+      res,
+      409,
+      "This request has already been claimed by another partner"
+    );
+  }
+
+  // Notify the resident that a partner picked up their request.
+  await Notification.create({
+    recipient: claimed.resident,
+    title: "Recycling Request Accepted",
+    message: `Your recycling pickup request for ${new Date(
+      claimed.preferredDate
+    ).toLocaleDateString()} has been accepted by ${partner.organizationName}.`,
+    type: "recycling_accepted",
+    relatedDocument: claimed._id,
+    relatedModel: "RecyclingRequest",
+  });
+
+  return sendSuccess(res, 200, "Request claimed successfully", {
+    request: claimed,
+  });
+});
+
 // @route  PATCH /api/partners/requests/:id/status
 // @access partner
 // Handles partner actions: accepted, rejected, in_progress, completed.
+// A request enters the partner's hands at "accepted" (via claimRequest). From
+// there the owning partner drives it forward, and may still reject/release it
+// before starting work.
 const PARTNER_ALLOWED_TRANSITIONS = {
-  assigned: ["accepted", "rejected"],
-  accepted: ["in_progress"],
+  accepted: ["in_progress", "rejected"],
   in_progress: ["completed"],
 };
 
@@ -66,6 +206,30 @@ export const updateRequestStatus = asyncHandler(async (req, res) => {
       400,
       `Cannot transition from '${request.status}' to '${status}'`
     );
+  }
+
+  // Releasing a claimed request: return it to the shared pool as unclaimed
+  // rather than leaving a dead "rejected" record, so another partner in the
+  // area can pick it up.
+  if (status === "rejected") {
+    request.status = "pending";
+    request.partner = undefined;
+    request.acceptedAt = undefined;
+    await request.save();
+
+    await Notification.create({
+      recipient: request.resident,
+      title: "Recycling Request Reopened",
+      message:
+        "A partner released your recycling request. It is back in the queue for another partner to accept.",
+      type: "recycling_rejected",
+      relatedDocument: request._id,
+      relatedModel: "RecyclingRequest",
+    });
+
+    return sendSuccess(res, 200, "Request released back to the pool", {
+      request,
+    });
   }
 
   request.status = status;
