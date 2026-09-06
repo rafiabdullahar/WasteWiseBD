@@ -50,6 +50,7 @@ const AdminComplaintsPage = () => {
   const [suggestions, setSuggestions] = useState({})
   const [loadingSuggestions, setLoadingSuggestions] = useState(false)
   const [assigningId, setAssigningId] = useState(null)
+  const [faultDrafts, setFaultDrafts] = useState({})
 
   const fetchComplaints = async () => {
     try {
@@ -66,11 +67,12 @@ const AdminComplaintsPage = () => {
     fetchComplaints()
   }, [])
 
-  const submitStatusChange = async (id, status, note = '') => {
+  const submitStatusChange = async (id, status, note = '', atFault = '') => {
     try {
       const { data } = await api.patch(`/complaints/${id}/status`, {
         status,
         resolutionNotes: note,
+        atFault,
       })
       if (data.success) {
         toast.success('Status updated')
@@ -100,11 +102,14 @@ const AdminComplaintsPage = () => {
     if (!status) return
 
     const note = (noteDrafts[id] || '').trim()
+    const fault = faultDrafts[id]
+
     if (!note) {
       toast.error('Please add resolution notes before marking as Resolved')
       return
     }
-    submitStatusChange(id, status, note)
+    
+    submitStatusChange(id, status, note, fault)
   }
 
   const handleShowSuggestions = async (id) => {
@@ -357,6 +362,18 @@ const AdminComplaintsPage = () => {
                         rows={2}
                         className="input-field text-sm"
                       />
+                      <select
+                        value={faultDrafts[c._id] || ''}
+                        onChange={(e) =>
+                          setFaultDrafts((prev) => ({ ...prev, [c._id]: e.target.value }))
+                        }
+                        className="input-field text-sm"
+                      >
+                        <option value="">Was the complaint applicable against this particular collecter?</option>
+                        <option value="valid">Valid — collector was at fault</option>
+                        <option value="invalid">Invalid — not the collector's fault</option>
+                        <option value="inconclusive">Inconclusive</option>
+                      </select>
                       <button
                         onClick={() => handleStatusChange(c._id)}
                         className="btn-primary text-xs px-4 py-1.5"

@@ -7,6 +7,7 @@ import WastePickupRequest, {
 } from "../models/WastePickupRequest.model.js";
 import RecyclingPartner from "../models/RecyclingPartner.model.js";
 import RecyclingRequest from "../models/RecyclingRequest.model.js";
+import Complaint from "../models/Complaint.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 
@@ -1011,7 +1012,9 @@ export const assignPickupRequest =
     );
   });
 
-  // FEATURE 17 — COLLECTOR PERFORMANCE MONITORING
+// ============================================================================
+// FEATURE 17 — COLLECTOR PERFORMANCE MONITORING
+// ============================================================================
 
 // @route  GET /api/admin/collectors/performance
 // @access admin
@@ -1033,6 +1036,11 @@ export const getCollectorsPerformance = asyncHandler(async (req, res) => {
       let onTimeCount = 0;
 
       completedRequests.forEach((request) => {
+        // Simplest definition: "on time" means completed on the same
+        // calendar day as the resident's preferred date. This ignores
+        // preferredTimeSlot (morning/afternoon/evening) since the schema
+        // doesn't define exact hour boundaries for those slots — a
+        // stricter version could be added later if needed.
         const preferredDay = new Date(request.preferredDate).toDateString();
         const completedDay = new Date(request.completedAt).toDateString();
 
@@ -1053,6 +1061,21 @@ export const getCollectorsPerformance = asyncHandler(async (req, res) => {
           ? Number(((profile.totalCompleted / totalJobs) * 100).toFixed(1))
           : null;
 
+      // Counts every complaint ever linked to this collector, regardless of
+      // outcome (Open/Investigating/Resolved/Closed) — this measures how
+      // often a collector gets complained about, not whether they were
+      // proven at fault. See project notes for why: fault-tracking would
+      // need a new field on Complaint, which is out of scope here.
+      const complaintCount = await Complaint.countDocuments({
+        assignedCollector: profile._id,
+        atFault: "valid",
+      });
+
+      const complaintRate =
+        totalJobs > 0
+          ? Number(((complaintCount / totalJobs) * 100).toFixed(1))
+          : null;
+
       return {
         collectorId: profile._id,
         name: profile.user?.name,
@@ -1064,6 +1087,8 @@ export const getCollectorsPerformance = asyncHandler(async (req, res) => {
         totalFailed: profile.totalFailed,
         successRate,
         punctualityRate,
+        complaintCount,
+        complaintRate,
         averageRating: profile.averageRating,
       };
     })

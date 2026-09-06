@@ -155,6 +155,7 @@ const AdminCollectorPerformancePage = () => {
                   <th className="table-header text-right py-3 px-4">Failed</th>
                   <th className="table-header text-right py-3 px-4">Success rate</th>
                   <th className="table-header text-right py-3 px-4">Punctuality</th>
+                  <th className="table-header text-right py-3 px-4">Complaints</th>
                   <th className="table-header text-right py-3 px-4">Rating</th>
                   <th className="table-header text-right py-3 px-4">Status</th>
                 </tr>
@@ -177,8 +178,14 @@ const AdminCollectorPerformancePage = () => {
                       {formatPercent(c.punctualityRate)}
                     </td>
                     <td className="table-cell text-right">
-                      {c.averageRating > 0 ? `${c.averageRating}/5` : '—'}
+                      {c.complaintCount}
+                      {c.complaintRate !== null && (
+                        <span className="text-gray-500 text-xs"> ({c.complaintRate}%)</span>
+                      )}
                     </td>
+                    <td className="table-cell text-right">
+                      {c.averageRating > 0 ? `${c.averageRating}/5` : '—'}
+                    </td>                    
                     <td className="table-cell text-right">
                       <span className={`badge ${c.isAvailable ? 'badge-green' : 'badge-gray'}`}>
                         {c.isAvailable ? 'Available' : 'Unavailable'}

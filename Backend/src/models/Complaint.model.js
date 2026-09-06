@@ -80,6 +80,11 @@ const complaintSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+    atFault: {
+      type: String,
+      enum: ["valid", "invalid", "inconclusive"],
+      default: "valid",
+    },
     statusHistory: {
       type: [statusHistorySchema],
       default: [],

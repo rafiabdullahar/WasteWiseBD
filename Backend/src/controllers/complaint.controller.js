@@ -208,6 +208,10 @@ export const updateComplaintStatus = asyncHandler(async (req, res) => {
     complaint.resolutionNotes = req.body.resolutionNotes;
   }
 
+  if (req.body.atFault) {
+    complaint.atFault = req.body.atFault;
+  }
+  
   complaint.statusHistory.push({
     status: req.body.status,
     note: req.body.resolutionNotes || req.body.note || "",
